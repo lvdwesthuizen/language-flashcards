@@ -61,3 +61,43 @@
 .recording-active {
 	animation: pulse 1.5s ease-in-out infinite;
 }
+
+/* Spanish text selection and click translation */
+.selectable-spanish {
+	user-select: text;
+	cursor: pointer;
+}
+
+.translation-tooltip {
+	position: fixed;
+	z-index: 1000;
+	padding: 8px 12px;
+	background: #1a1a1a;
+	color: white;
+	font-size: 13px;
+	border-radius: 6px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+	pointer-events: none;
+	opacity: 0;
+	transform: translate(-50%, -100%);
+	transition: opacity 150ms ease-in-out;
+	max-width: 300px;
+	white-space: normal;
+	word-wrap: break-word;
+}
+
+.translation-tooltip.show {
+	opacity: 1;
+}
+
+.translation-tooltip::after {
+	content: '';
+	position: absolute;
+	width: 0;
+	height: 0;
+	border: 6px solid transparent;
+	border-top-color: #1a1a1a;
+	top: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+}

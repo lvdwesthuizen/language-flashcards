@@ -1,4 +1,5 @@
 import { db } from './db.js';
+import { translateText } from './translate.js';
 
 const cardList = document.getElementById('card-list');
 const modal = document.getElementById('modal');
@@ -53,7 +54,7 @@ async function renderCards(filterTag = '') {
 					card.spanish
 						? `
           <p class="spanish-placeholder text-[1.05rem] font-semibold text-app-spanish underline cursor-pointer hover:text-app-spanish/80 transition-colors" data-spanish="${escAttr(card.spanish)}">español</p>
-          <p class="spanish-revealed hidden text-[1.05rem] font-semibold text-app-spanish">${escHtml(card.spanish)}</p>
+          <p class="spanish-revealed hidden text-[1.05rem] font-semibold text-app-spanish selectable-spanish">${escHtml(card.spanish)}</p>
         `
 						: `
           <p class="text-[1.05rem] font-semibold text-orange-600 italic">⚠️ Translation needed</p>
@@ -406,6 +407,141 @@ cardList.addEventListener('click', async e => {
 		}
 	}
 });
+
+// Click/selection translation handlers
+let currentTooltip = null;
+let tooltipTimeout = null;
+
+// Handle text selection
+cardList.addEventListener('mouseup', async e => {
+	const spanishText = e.target.closest('.selectable-spanish');
+	if (!spanishText) return;
+
+	const selection = window.getSelection();
+	const selectedText = selection.toString().trim();
+
+	if (selectedText && selectedText.length > 0) {
+		// User selected text
+		await showTranslationTooltip(selectedText, selection.getRangeAt(0));
+	}
+});
+
+// Handle single word click
+cardList.addEventListener(
+	'click',
+	async e => {
+		// Check if clicking on Spanish text
+		const spanishText = e.target.closest('.selectable-spanish');
+		if (!spanishText) return;
+
+		// Only if no text is selected
+		const selection = window.getSelection();
+		if (selection.toString().trim()) return;
+
+		// Get the word at click position
+		const word = getWordAtPosition(spanishText, e);
+		if (word) {
+			await showTranslationTooltip(word.text, null, e.clientX, e.clientY);
+		}
+	},
+	true,
+);
+
+// Show translation tooltip
+async function showTranslationTooltip(text, range, clientX, clientY) {
+	// Remove existing tooltip and clear timeout
+	if (currentTooltip) {
+		currentTooltip.remove();
+		currentTooltip = null;
+	}
+	if (tooltipTimeout) {
+		clearTimeout(tooltipTimeout);
+		tooltipTimeout = null;
+	}
+
+	// Create tooltip with loading state
+	const tooltip = document.createElement('div');
+	tooltip.className = 'translation-tooltip';
+	tooltip.textContent = 'Translating...';
+	document.body.appendChild(tooltip);
+
+	// Position tooltip
+	let x, y;
+	if (range) {
+		const rect = range.getBoundingClientRect();
+		x = rect.left + rect.width / 2;
+		y = rect.top;
+	} else {
+		x = clientX;
+		y = clientY;
+	}
+
+	tooltip.style.left = `${x}px`;
+	tooltip.style.top = `${y - 10}px`;
+
+	// Fetch translation
+	const translation = await translateText(text);
+	tooltip.textContent = translation;
+
+	// Show tooltip
+	requestAnimationFrame(() => {
+		tooltip.classList.add('show');
+	});
+
+	currentTooltip = tooltip;
+
+	// Remove tooltip function
+	const removeTooltip = () => {
+		if (currentTooltip) {
+			currentTooltip.remove();
+			currentTooltip = null;
+		}
+		if (tooltipTimeout) {
+			clearTimeout(tooltipTimeout);
+			tooltipTimeout = null;
+		}
+		document.removeEventListener('click', removeTooltip);
+	};
+
+	// Auto-hide after 2 seconds
+	tooltipTimeout = setTimeout(() => {
+		removeTooltip();
+	}, 2000);
+
+	// Also remove on click
+	setTimeout(() => {
+		document.addEventListener('click', removeTooltip);
+	}, 100);
+}
+
+// Get word at click position
+function getWordAtPosition(element, event) {
+	const range = document.caretRangeFromPoint(event.clientX, event.clientY);
+
+	if (!range) return null;
+
+	const offset = range.startOffset;
+	const node = range.startContainer;
+
+	if (node.nodeType !== Node.TEXT_NODE) return null;
+
+	// Find word boundaries
+	const fullText = node.textContent;
+	const wordRegex = /[a-záéíóúñü]+/gi;
+	let match;
+
+	while ((match = wordRegex.exec(fullText)) !== null) {
+		if (offset >= match.index && offset <= match.index + match[0].length) {
+			return {
+				text: match[0],
+				start: match.index,
+				end: match.index + match[0].length,
+			};
+		}
+	}
+
+	return null;
+}
 
 async function handleFileUpload(e) {
 	const file = e.target.files[0];

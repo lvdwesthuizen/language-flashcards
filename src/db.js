@@ -20,3 +20,17 @@ db.version(2)
 				if (!card.audioBlob) card.audioBlob = null;
 			});
 	});
+
+db.version(3)
+	.stores({
+		cards: '++id, createdAt, *tags',
+	})
+	.upgrade(tx => {
+		// Add wordTranslations field to existing cards
+		return tx
+			.table('cards')
+			.toCollection()
+			.modify(card => {
+				if (!card.wordTranslations) card.wordTranslations = null;
+			});
+	});
