@@ -4,103 +4,340 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Learn Spanish</title>
-    <script type="module" crossorigin src="/language-flashcards/assets/index-DYLidSTS.js"></script>
-    <link rel="stylesheet" crossorigin href="/language-flashcards/assets/index-eUewXzzr.css">
+    <style>
+      /* Prevent FOUC - inline critical styles */
+      #app-loading-screen {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.3s ease-out;
+      }
+      #app-loading-screen.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .loader-content {
+        text-align: center;
+      }
+      .loader-spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin: 0 auto 16px;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      .loader-text {
+        color: white;
+        font-size: 16px;
+        font-weight: 600;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+      /* Hide main content initially */
+      body > header,
+      body > #app {
+        opacity: 0;
+        transition: opacity 0.3s ease-in;
+      }
+      body.loaded > header,
+      body.loaded > #app {
+        opacity: 1;
+      }
+    </style>
+    <script type="module" crossorigin src="/language-flashcards/assets/index-BSBvMlSj.js"></script>
+    <link rel="stylesheet" crossorigin href="/language-flashcards/assets/index-B8r3woTi.css">
   </head>
   <body>
-    <div id="app" class="max-w-[680px] mx-auto px-4 py-6 pb-16">
-      <header class="flex items-center justify-between mb-8">
-        <h1 class="text-2xl font-bold">Learn Spanish</h1>
-        <div class="flex gap-2">
+    <!-- Loading Screen -->
+    <div id="app-loading-screen">
+      <div class="loader-content">
+        <div class="loader-spinner"></div>
+        <div class="loader-text">Loading Spanish Cards...</div>
+      </div>
+    </div>
+
+    <!-- Sticky Header -->
+    <header class="app-header bg-white/80 backdrop-blur-lg shadow-sm border-b border-gray-200/50 px-8 py-5 sticky top-0 z-10">
+      <!-- Desktop Header -->
+      <div class="desktop-header max-w-[1800px] mx-auto flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-3">
+            <div class="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+              <svg class="w-7 h-7 text-white" width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path>
+              </svg>
+            </div>
+            <div>
+              <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                Learn Spanish
+              </h1>
+              <p class="text-sm text-gray-600">Master everyday conversations</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
           <input type="file" id="file-input" accept=".txt" class="hidden" />
-          <button id="btn-import" class="px-4 py-2 bg-white border-2 border-app-primary text-app-primary rounded-app text-sm font-medium hover:bg-app-primary/5 transition-colors cursor-pointer">
-            📂 Import .txt
+          <button id="btn-import" class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-xl transition-all shadow-sm hover:shadow">
+            <svg class="w-4 h-4" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+            </svg>
+            Import List
           </button>
-          <button id="btn-add" class="px-4 py-2 bg-app-primary text-white rounded-app text-sm font-medium hover:bg-app-primary-hover transition-colors border border-app-primary cursor-pointer">
-            + Add Card
+          <button id="btn-add" class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl transition-all shadow-md hover:shadow-lg">
+            <svg class="w-4 h-4" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Add Card
           </button>
         </div>
-      </header>
-
-      <div id="filter-bar" class="mb-6">
-        <label class="flex items-center gap-2 text-sm text-app-text-muted">
-          <span class="font-semibold">Filter by tag:</span>
-          <select id="tag-filter" class="border border-app-border rounded-md px-3 py-2 text-sm bg-white text-app-text cursor-pointer min-w-[150px] focus:outline-none focus:ring-2 focus:ring-app-primary">
-            <option value="">All cards</option>
-          </select>
-        </label>
       </div>
 
-      <main id="card-list" class="flex flex-col gap-4">
-        <!-- Cards rendered here by JS -->
-      </main>
+      <!-- Mobile Header -->
+      <div class="mobile-header hidden flex items-center justify-between">
+        <button id="btn-mobile-menu" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+          <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+        <div class="flex items-center gap-2">
+          <div class="p-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-md">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path>
+            </svg>
+          </div>
+          <h1 class="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Learn Spanish</h1>
+        </div>
+        <button id="btn-add-mobile" class="p-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-md">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
 
-      <dialog id="modal" class="border-0 rounded-app p-8 w-[min(440px,92vw)] shadow-[0_8px_32px_rgba(0,0,0,.18)] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 m-0 backdrop:bg-black/40">
-        <form id="card-form" method="dialog">
-          <h2 id="modal-title" class="mb-5 text-xl font-semibold">New Card</h2>
-          
-          <label class="flex flex-col gap-1.5 text-[0.85rem] font-semibold text-app-text-muted mb-4">
-            English
-            <div class="input-wrapper relative w-full">
-              <textarea id="input-english" rows="2" placeholder="The cat is on the table." required class="input-field resize-y"></textarea>
-              <button type="button" class="input-clear-btn hidden absolute top-2.5 right-2.5 w-8 h-8 rounded-full border-2 border-app-text-muted items-center justify-center text-app-text text-xl bg-transparent hover:bg-black/5 hover:border-app-text transition-all cursor-pointer" data-clear="input-english">&times;</button>
-              <span class="supporting-text block text-xs text-app-text-muted mt-1.5 leading-snug">Enter the English phrase or sentence</span>
-            </div>
-          </label>
-          
-          <label class="flex flex-col gap-1.5 text-[0.85rem] font-semibold text-app-text-muted mb-4">
-            Spanish
-            <div class="input-wrapper relative w-full">
-              <textarea id="input-spanish" rows="2" placeholder="El gato está sobre la mesa." class="input-field resize-y"></textarea>
-              <button type="button" class="input-clear-btn hidden absolute top-2.5 right-2.5 w-8 h-8 rounded-full border-2 border-app-text-muted items-center justify-center text-app-text text-xl bg-transparent hover:bg-black/5 hover:border-app-text transition-all cursor-pointer" data-clear="input-spanish">&times;</button>
-              <span class="supporting-text block text-xs text-app-text-muted mt-1.5 leading-snug">Enter the Spanish translation (optional)</span>
-            </div>
-          </label>
-          
-          <label class="flex flex-col gap-1.5 text-[0.85rem] font-semibold text-app-text-muted mb-4">
-            Tags
-            <div class="tag-input-container flex gap-2 items-start">
-              <div class="input-wrapper relative flex-1">
-                <input type="text" id="input-tag" placeholder="e.g., home, morning" class="input-field" />
-                <button type="button" class="input-clear-btn hidden absolute top-2.5 right-2.5 w-8 h-8 rounded-full border-2 border-app-text-muted items-center justify-center text-app-text text-xl bg-transparent hover:bg-black/5 hover:border-app-text transition-all cursor-pointer" data-clear="input-tag">&times;</button>
-                <span class="supporting-text block text-xs text-app-text-muted mt-1.5 leading-snug">Add tags to categorize your cards</span>
-              </div>
-              <button type="button" id="btn-add-tag" class="px-2.5 py-1.5 text-xs border border-app-border bg-white rounded-app font-medium hover:bg-app-bg transition-colors cursor-pointer">
-                + Add
-              </button>
-            </div>
-            <div id="tag-chips" class="flex gap-1.5 flex-wrap mt-2 min-h-[28px]"></div>
-          </label>
-
-          <label class="flex flex-col gap-1.5 text-[0.85rem] font-semibold text-app-text-muted mb-4">
-            Audio Recording
-            <div class="audio-controls flex gap-2 flex-wrap items-center">
-              <button type="button" id="btn-record" class="px-4 py-2 border-2 border-red-600 text-red-600 bg-white rounded-app text-sm font-medium hover:bg-red-50 transition-colors cursor-pointer">
-                🎤 Record
-              </button>
-              <button type="button" id="btn-stop-record" class="px-4 py-2 border border-app-border bg-white rounded-app text-sm font-medium hover:bg-app-bg transition-colors cursor-pointer" style="display:none;">
-                ⏹ Stop
-              </button>
-              <button type="button" id="btn-play-preview" class="px-4 py-2 border border-app-border bg-white rounded-app text-sm font-medium hover:bg-app-bg transition-colors cursor-pointer" style="display:none;">
-                ▶️ Preview
-              </button>
-              <button type="button" id="btn-delete-audio" class="px-4 py-2 border border-app-border bg-white rounded-app text-sm font-medium hover:bg-app-bg transition-colors cursor-pointer" style="display:none;">
-                🗑 Delete
-              </button>
-              <span id="recording-status" class="text-[0.85rem] text-app-text-muted italic"></span>
-            </div>
-          </label>
-
-          <div class="modal-actions flex justify-end gap-2.5 mt-2">
-            <button type="button" id="btn-cancel" class="px-4 py-2 border border-app-border bg-white rounded-app text-sm font-medium hover:bg-app-bg transition-colors cursor-pointer">
-              Cancel
-            </button>
-            <button type="submit" class="px-4 py-2 bg-app-primary text-white rounded-app text-sm font-medium hover:bg-app-primary-hover transition-colors border border-app-primary cursor-pointer">
-              Save
+    <!-- Main Content -->
+    <div id="app" class="max-w-[1800px] mx-auto h-[calc(100vh-100px)] flex gap-6 px-8 py-6">
+      <!-- Categories Sidebar -->
+      <aside id="category-sidebar" class="w-80 flex flex-col bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 overflow-hidden">
+        <div class="p-6 border-b border-gray-200 bg-gradient-to-br from-gray-50 to-white">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-900">Categories</h3>
+            <button id="btn-add-category" type="button" class="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Add category">
+              <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+              </svg>
             </button>
           </div>
-        </form>
-      </dialog>
+          <div class="mb-2">
+            <input
+              type="text"
+              id="input-category"
+              placeholder="Search categories"
+              class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              autocomplete="off"
+            />
+          </div>
+          <!-- Category Add Modal (injected at end of body) -->
+          <div id="category-modal-container"></div>
+        </div>
+
+        <div id="category-list-container" class="category-list flex-1 overflow-y-auto p-3">
+          <ul id="category-list" class="flex flex-col gap-1"></ul>
+        </div>
+      </aside>
+
+      <!-- Phrases Section -->
+      <main id="main-content" class="flex-1 flex flex-col min-w-0">
+        <!-- Mobile Category Display -->
+        <div id="mobile-category-section" class="hidden mb-4 p-4">
+          <div class="flex items-center gap-4">
+            <span id="mobile-category-icon" class="text-5xl">📝</span>
+            <div class="flex-1">
+              <div id="mobile-category-title" class="text-3xl font-bold text-gray-900 leading-tight mb-1"></div>
+              <div id="mobile-category-subtitle" class="text-base text-gray-600"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Desktop Category Header and Filters -->
+        <div class="desktop-controls mb-6 flex items-center justify-between">
+          <div id="category-header">
+            <!-- Category header will be populated by JavaScript -->
+          </div>
+
+          <div class="flex items-center gap-2 bg-white rounded-xl border border-gray-200 p-1 shadow-sm">
+            <button
+              id="filter-all"
+              class="filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-all bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md cursor-pointer"
+            >
+              All cards
+            </button>
+            <button
+              id="filter-audio"
+              class="filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-all text-gray-600 hover:text-gray-900 cursor-pointer"
+            >
+              With audio
+            </button>
+          </div>
+        </div>
+
+        <!-- Mobile Filter Buttons -->
+        <div class="mobile-filters hidden mb-4 flex items-center gap-2 bg-white rounded-xl border border-gray-200 p-1 shadow-sm">
+          <button
+            id="filter-all-mobile"
+            class="filter-btn flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-all bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md cursor-pointer"
+          >
+            All cards
+          </button>
+          <button
+            id="filter-audio-mobile"
+            class="filter-btn flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-all text-gray-600 hover:text-gray-900 cursor-pointer"
+          >
+            With audio
+          </button>
+        </div>
+
+        <div id="card-list" class="flex-1 flex flex-col gap-4">
+          <!-- Cards rendered here by JS -->
+        </div>
+      </main>
+
+      <!-- Hidden select for backward compatibility -->
+      <select id="category-filter" class="hidden">
+        <option value="">All cards</option>
+      </select>
+
+        <dialog id="modal" class="border-0 rounded-app p-8 w-[min(440px,92vw)] shadow-[0_8px_32px_rgba(0,0,0,.18)] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 m-0 backdrop:bg-black/40">
+          <form id="card-form" method="dialog">
+            <h2 id="modal-title" class="mb-5 text-xl font-semibold">New Card</h2>
+            
+            <label class="flex flex-col gap-1.5 text-[0.85rem] font-semibold text-app-text-muted mb-4">
+              English
+              <div class="input-wrapper relative w-full">
+                <textarea id="input-english" rows="2" placeholder="The cat is on the table." required class="input-field resize-y"></textarea>
+                <button type="button" class="input-clear-btn hidden absolute top-2.5 right-2.5 w-8 h-8 rounded-full border-2 border-app-text-muted items-center justify-center text-app-text text-xl bg-transparent hover:bg-black/5 hover:border-app-text transition-all cursor-pointer" data-clear="input-english">&times;</button>
+                <span class="supporting-text block text-xs text-app-text-muted mt-1.5 leading-snug">Enter the English phrase or sentence</span>
+              </div>
+            </label>
+            
+            <label class="flex flex-col gap-1.5 text-[0.85rem] font-semibold text-app-text-muted mb-4">
+              Spanish
+              <div class="input-wrapper relative w-full">
+                <textarea id="input-spanish" rows="2" placeholder="El gato está sobre la mesa." class="input-field resize-y"></textarea>
+                <button type="button" class="input-clear-btn hidden absolute top-2.5 right-2.5 w-8 h-8 rounded-full border-2 border-app-text-muted items-center justify-center text-app-text text-xl bg-transparent hover:bg-black/5 hover:border-app-text transition-all cursor-pointer" data-clear="input-spanish">&times;</button>
+                <span class="supporting-text block text-xs text-app-text-muted mt-1.5 leading-snug">Enter the Spanish translation (optional)</span>
+              </div>
+            </label>
+            
+            <div class="flex flex-col gap-1.5 text-[0.85rem] font-semibold text-app-text-muted mb-4">
+              <label>Categories</label>
+              <div class="relative">
+                <button type="button" id="category-dropdown-btn" class="input-field w-full text-left flex items-center justify-between bg-white hover:bg-gray-50 transition-colors">
+                  <span id="category-dropdown-label" class="text-app-text-muted text-sm font-normal">Select categories</span>
+                  <svg class="w-5 h-5 text-app-text-muted transition-transform" id="category-dropdown-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+                <div id="category-dropdown-menu" class="hidden absolute z-10 mt-1 w-full bg-white border border-app-border rounded-md shadow-lg max-h-60 overflow-auto">
+                  <div class="py-1" id="category-dropdown-items">
+                    <!-- Category checkboxes will be populated here by JS -->
+                  </div>
+                </div>
+              </div>
+              <span class="supporting-text block text-xs text-app-text-muted mt-1.5 leading-snug">Select one or more categories</span>
+              <div id="category-chips" class="flex gap-1.5 flex-wrap mt-2 min-h-7"></div>
+            </div>
+
+            <label class="flex flex-col gap-1.5 text-[0.85rem] font-semibold text-app-text-muted mb-4">
+              Audio Recording
+              <div class="audio-controls flex gap-2 flex-wrap items-center">
+                <button type="button" id="btn-record" class="px-4 py-2 border-2 border-red-600 text-red-600 bg-white rounded-xl text-sm font-medium hover:bg-red-50 transition-colors cursor-pointer">
+                  🎤 Record
+                </button>
+                <button type="button" id="btn-stop-record" class="px-4 py-2 border border-gray-300 bg-white rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors cursor-pointer" style="display:none;">
+                  ⏹ Stop
+                </button>
+                <button type="button" id="btn-play-preview" class="px-4 py-2 border border-gray-300 bg-white rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors cursor-pointer" style="display:none;">
+                  ▶️ Preview
+                </button>
+                <button type="button" id="btn-delete-audio" class="px-4 py-2 border border-gray-300 bg-white rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors cursor-pointer" style="display:none;">
+                  🗑 Delete
+                </button>
+                <span id="recording-status" class="text-[0.85rem] text-app-text-muted italic"></span>
+              </div>
+            </label>
+
+            <div class="modal-actions flex justify-end gap-2.5 mt-2">
+              <button type="button" id="btn-cancel" class="px-4 py-2 border border-gray-300 bg-white rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors cursor-pointer">
+                Cancel
+              </button>
+              <button type="submit" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg cursor-pointer">
+                Save
+              </button>
+            </div>
+          </form>
+        </dialog>
+
+        <!-- Category Menu Modal (Mobile) -->
+        <dialog id="category-menu-modal" class="border-0 rounded-t-3xl p-0 w-full max-w-full shadow-[0_-4px_32px_rgba(0,0,0,.18)] fixed bottom-0 left-0 m-0 backdrop:bg-black/40">
+          <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-bold text-gray-900">Select Category</h2>
+              <button type="button" id="btn-close-category-menu" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+            <div id="category-menu-list" class="flex flex-col gap-2 max-h-[60vh] overflow-y-auto">
+              <!-- Categories will be populated here -->
+            </div>
+          </div>
+        </dialog>
+
+        <!-- Mobile Sidebar Menu -->
+        <div id="mobile-sidebar" class="fixed inset-0 z-50 hidden">
+          <div class="absolute inset-0 bg-black/40" id="mobile-sidebar-backdrop"></div>
+          <div class="absolute left-0 top-0 bottom-0 w-80 bg-white shadow-2xl -translate-x-full transition-transform duration-300" id="mobile-sidebar-content">
+            <div class="p-6 border-b border-gray-200 bg-gradient-to-br from-gray-50 to-white">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-gray-900">Categories</h3>
+                <button id="btn-close-sidebar" type="button" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                  <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+              <div class="mb-2">
+                <input
+                  type="text"
+                  id="input-category-mobile"
+                  placeholder="Search categories"
+                  class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  autocomplete="off"
+                />
+              </div>
+              <button id="btn-add-category-mobile" type="button" class="w-full mt-3 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl transition-all shadow-md hover:shadow-lg">
+                + Add Category
+              </button>
+            </div>
+
+            <div class="category-list flex-1 overflow-y-auto p-3" style="max-height: calc(100vh - 220px);">
+              <ul id="category-list-mobile" class="flex flex-col gap-1"></ul>
+            </div>
+          </div>
+        </div>
     </div>
 
   </body>
