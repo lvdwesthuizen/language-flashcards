@@ -1,12 +1,27 @@
 <!-- Modal for adding a new category -->
-<dialog id="category-modal" class="border-0 rounded-app p-8 w-[min(440px,92vw)] shadow-[0_8px_32px_rgba(0,0,0,.18)] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 m-0 backdrop:bg-black/40">
+<dialog id="category-modal" class="border-0 rounded-app p-8 w-[min(560px,92vw)] shadow-[0_8px_32px_rgba(0,0,0,.18)] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 m-0 backdrop:bg-black/40">
   <form id="category-modal-form" method="dialog">
     <h2 class="mb-5 text-xl font-semibold">Add Category</h2>
     
     <label class="flex flex-col gap-1.5 text-[0.85rem] font-semibold text-app-text-muted mb-4">
-      Emoji
-      <button type="button" id="category-emoji-picker" class="px-4 py-3 text-3xl border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors text-left w-20">📝</button>
-      <input type="hidden" id="input-category-emoji" name="emoji" value="📝">
+      Icon
+      <div class="flex items-center gap-3">
+        <div id="selected-emoji-preview" class="w-12 h-12 flex items-center justify-center text-2xl">
+          📝
+        </div>
+        <button type="button" id="category-emoji-search-btn" class="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-xl transition-all">
+          Choose Icon
+        </button>
+      </div>
+      <input type="hidden" id="input-category-hexcode" name="hexcode" value="">
+    </label>
+    
+    <label class="flex flex-col gap-1.5 text-[0.85rem] font-semibold text-app-text-muted mb-4">
+      Color
+      <div class="flex items-center gap-3">
+        <input type="color" id="input-category-color" name="color" value="#3b82f6" class="w-16 h-12 rounded-xl border-2 border-gray-300 cursor-pointer">
+        <span class="text-sm text-gray-600">Choose a color for this category</span>
+      </div>
     </label>
     
     <label class="flex flex-col gap-1.5 text-[0.85rem] font-semibold text-app-text-muted mb-4">
@@ -26,32 +41,30 @@
   </form>
 </dialog>
 
-<!-- Simple emoji picker grid -->
-<div id="emoji-picker-grid" class="hidden fixed bg-white border border-gray-300 rounded-xl shadow-lg p-3 z-[100]" style="width: 240px; max-height: 300px; overflow-y: auto;">
-  <div class="grid grid-cols-6 gap-2">
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">📝</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">🥐</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">🏠</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">💬</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">👕</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">⏰</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">👋</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">☕</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">🛒</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">📚</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">🍽️</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">🚗</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">🎉</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">🌞</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">🌧️</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">🏫</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">🎨</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">🎵</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">⚽</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">🍕</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">🌮</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">🚌</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">✈️</button>
-    <button type="button" class="emoji-option text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">🏨</button>
+<!-- Emoji Search Modal -->
+<dialog id="emoji-search-modal" class="border-0 rounded-app p-6 w-[min(600px,92vw)] h-[70vh] shadow-[0_8px_32px_rgba(0,0,0,.18)] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 m-0 backdrop:bg-black/40">
+  <div class="flex flex-col h-full">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-semibold">Choose an Icon</h3>
+      <button type="button" id="emoji-search-close" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    
+    <input 
+      type="text" 
+      id="emoji-search-input" 
+      placeholder="Search icons (e.g., 'coffee', 'book', 'travel')" 
+      class="px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all mb-4"
+      autocomplete="off"
+    />
+    
+    <div id="emoji-search-status" class="text-sm text-gray-500 mb-2"></div>
+    
+    <div id="emoji-search-results" class="flex-1 overflow-y-auto grid grid-cols-8 gap-2 p-2 border border-gray-200 rounded-xl bg-gray-50">
+      <div class="col-span-8 text-center text-gray-500 py-8">Loading icons...</div>
+    </div>
   </div>
-</div>
+</dialog>

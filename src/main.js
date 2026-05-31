@@ -1,6 +1,12 @@
 import './styles/index.css';
 import { db, seedDatabase } from './db.js';
 import { translateText } from './translate.js';
+import {
+	fetchAndCacheEmojis,
+	searchEmojis,
+	getEmojiUrl,
+	clearEmojiCache,
+} from './emojiService.js';
 
 const cardList = document.getElementById('card-list');
 const modal = document.getElementById('modal');
@@ -73,22 +79,35 @@ async function renderCards(filterCategory = '') {
 		return;
 	}
 
+	// Fetch all categories to get their colors
+	const allCategories = await db.categories.toArray();
+	const categoryColorMap = {};
+	allCategories.forEach(cat => {
+		categoryColorMap[cat.name] = cat.color || '#3b82f6';
+	});
+
 	cardList.innerHTML = cards
-		.map(
-			card => `
+		.map(card => {
+			// Get color from first category, fallback to default blue
+			const cardColor =
+				card.categories && card.categories.length > 0
+					? categoryColorMap[card.categories[0]] || '#3b82f6'
+					: '#3b82f6';
+
+			return `
 		<article class="phrase-card group relative" data-id="${card.id}">
-			<div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-500 to-indigo-500 opacity-60"></div>
+			<div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b opacity-60" style="background: linear-gradient(to bottom, ${cardColor}, ${cardColor}dd);"></div>
 			
 			<div class="p-6 pl-8">
 				<div class="flex items-start gap-4">
-					<div class="flex-1 min-w-0 space-y-3">
+					<div class="flex-1 min-w-0 space-y-5">
 						<div>
-							<div class="text-lg font-semibold text-gray-900 mb-1">${escHtml(card.english)}</div>
+							<div class="text-lg font-semibold text-gray-900 mb-3">${escHtml(card.english)}</div>
 							<div class="spanish-reveal-container">
 								${
 									card.spanish
-										? `<p class="spanish-placeholder text-xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent underline cursor-pointer hover:opacity-80 transition-opacity" data-spanish="${escAttr(card.spanish)}">Traducir al español</p>
-										 <p class="spanish-revealed hidden text-xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent selectable-spanish">${escHtml(card.spanish)}</p>`
+										? `<p class="spanish-placeholder text-xl font-bold bg-clip-text text-transparent underline cursor-pointer hover:opacity-80 transition-opacity" style="background-image: linear-gradient(to right, ${cardColor}, ${cardColor}dd);" data-spanish="${escAttr(card.spanish)}">Traducir al español</p>
+										 <p class="spanish-revealed hidden text-xl font-bold bg-clip-text text-transparent selectable-spanish" style="background-image: linear-gradient(to right, ${cardColor}, ${cardColor}dd);">${escHtml(card.spanish)}</p>`
 										: `<p class="text-base font-semibold text-amber-600 italic">⚠️ Translation needed</p>`
 								}
 							</div>
@@ -127,7 +146,7 @@ async function renderCards(filterCategory = '') {
 					<div class="action-buttons flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
 						${
 							card.audioBlob
-								? `<button class="btn-play-audio p-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:shadow-md transition-all cursor-pointer border-0" data-id="${card.id}" aria-label="Play audio">
+								? `<button class="btn-play-audio p-3 text-white rounded-xl hover:shadow-md transition-all cursor-pointer border-0" style="background: linear-gradient(to right, ${cardColor}, ${cardColor}dd);" data-id="${card.id}" aria-label="Play audio">
 									<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
 										<path d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z"/>
 									</svg>
@@ -148,10 +167,10 @@ async function renderCards(filterCategory = '') {
 				</div>
 			</div>
 			
-			<div class="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-tl from-blue-500 to-indigo-500 opacity-[0.03] rounded-tl-full"></div>
+			<div class="absolute bottom-0 right-0 w-32 h-32 opacity-[0.03] rounded-tl-full" style="background: linear-gradient(to top left, ${cardColor}, ${cardColor}dd);"></div>
 		</article>
-	`,
-		)
+	`;
+		})
 		.join('');
 }
 
@@ -474,8 +493,12 @@ btnAdd.addEventListener('click', () => openModal());
 btnImport.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', handleFileUpload);
 btnCancel.addEventListener('click', closeModal);
+
+// Close modal only when clicking on the backdrop (not on form content)
 modal.addEventListener('click', e => {
-	if (e.target === modal) closeModal();
+	if (e.target === modal) {
+		closeModal();
+	}
 });
 
 // Category dropdown toggle
@@ -537,86 +560,233 @@ const btnAddCategory = document.getElementById('btn-add-category');
 function setupCategoryModal() {
 	const modal = document.getElementById('category-modal');
 	const form = document.getElementById('category-modal-form');
-	const emojiBtn = document.getElementById('category-emoji-picker');
-	const emojiInput = document.getElementById('input-category-emoji');
-	const emojiGrid = document.getElementById('emoji-picker-grid');
+	const hexcodeInput = document.getElementById('input-category-hexcode');
+	const colorInput = document.getElementById('input-category-color');
+	const emojiPreview = document.getElementById('selected-emoji-preview');
+	const emojiSearchBtn = document.getElementById('category-emoji-search-btn');
 	const inputEn = document.getElementById('input-category-en');
 	const inputEs = document.getElementById('input-category-es');
 	const cancelBtn = document.getElementById('category-modal-cancel');
+	const modalTitle = modal.querySelector('h2');
+	const submitBtn = modal.querySelector('button[type="submit"]');
 
-	// Open modal
-	btnAddCategory.addEventListener('click', () => {
+	// Emoji search modal elements
+	const emojiSearchModal = document.getElementById('emoji-search-modal');
+	const emojiSearchInput = document.getElementById('emoji-search-input');
+	const emojiSearchResults = document.getElementById('emoji-search-results');
+	const emojiSearchClose = document.getElementById('emoji-search-close');
+	const emojiSearchStatus = document.getElementById('emoji-search-status');
+
+	// Track edit mode
+	let editingCategory = null; // Stores { id, oldName } when editing
+
+	// Function to open modal for adding
+	window.openAddCategoryModal = () => {
+		editingCategory = null;
+		modalTitle.textContent = 'Add Category';
+		submitBtn.textContent = 'Add Category';
 		modal.showModal();
 		inputEn.value = '';
 		inputEs.value = '';
-		emojiInput.value = '📝';
-		emojiBtn.textContent = '📝';
-		emojiGrid.classList.add('hidden');
+		hexcodeInput.value = '';
+		colorInput.value = '#3b82f6'; // Default blue
+		emojiPreview.innerHTML = '📝';
 		inputEn.focus();
+	};
+
+	// Function to open modal for editing
+	window.openEditCategoryModal = async categoryName => {
+		const category = await db.categories
+			.where('name')
+			.equals(categoryName)
+			.first();
+		if (!category) return;
+
+		editingCategory = { id: category.id, oldName: category.name };
+		modalTitle.textContent = 'Edit Category';
+		submitBtn.textContent = 'Save Changes';
+		modal.showModal();
+		inputEn.value = category.name;
+		inputEs.value = category.spanish || '';
+		hexcodeInput.value = category.hexcode || '';
+		colorInput.value = category.color || '#3b82f6';
+
+		if (category.hexcode) {
+			emojiPreview.innerHTML = `<img src="${getEmojiUrl(category.hexcode)}" alt="${category.name}" class="w-full h-full object-contain p-1" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" /><span class="text-3xl hidden">📝</span>`;
+		} else {
+			emojiPreview.innerHTML = '📝';
+		}
+		inputEn.focus();
+	};
+
+	// Open category modal for adding
+	btnAddCategory.addEventListener('click', () => {
+		window.openAddCategoryModal();
 	});
 
 	// Cancel/close
 	cancelBtn.addEventListener('click', () => {
-		emojiGrid.classList.add('hidden');
 		modal.close();
 	});
 
-	// Close modal on backdrop click
 	modal.addEventListener('click', e => {
 		if (e.target === modal) {
-			emojiGrid.classList.add('hidden');
 			modal.close();
 		}
 	});
 
-	// Emoji picker open/close
-	emojiBtn.addEventListener('click', e => {
-		e.preventDefault();
-		e.stopPropagation();
-		const isHidden = emojiGrid.classList.contains('hidden');
-		emojiGrid.classList.toggle('hidden');
+	// Open emoji search
+	emojiSearchBtn.addEventListener('click', async () => {
+		emojiSearchModal.showModal();
+		emojiSearchInput.value = '';
+		emojiSearchInput.focus();
+		await renderEmojiResults('');
+	});
 
-		if (isHidden) {
-			// Position grid below button
-			const rect = emojiBtn.getBoundingClientRect();
-			emojiGrid.style.top = rect.bottom + 4 + 'px';
-			emojiGrid.style.left = rect.left + 'px';
+	// Close emoji search
+	emojiSearchClose.addEventListener('click', () => {
+		emojiSearchModal.close();
+	});
+
+	emojiSearchModal.addEventListener('click', e => {
+		if (e.target === emojiSearchModal) {
+			emojiSearchModal.close();
 		}
 	});
 
-	// Emoji select
-	emojiGrid.addEventListener('click', e => {
-		e.stopPropagation();
-		if (e.target.classList.contains('emoji-option')) {
-			emojiInput.value = e.target.textContent.trim();
-			emojiBtn.textContent = e.target.textContent.trim();
-			emojiGrid.classList.add('hidden');
-		}
+	// Emoji search input
+	let searchTimeout;
+	emojiSearchInput.addEventListener('input', e => {
+		clearTimeout(searchTimeout);
+		searchTimeout = setTimeout(async () => {
+			await renderEmojiResults(e.target.value);
+		}, 300);
 	});
 
-	// Close emoji picker when clicking outside
-	document.addEventListener('click', e => {
-		if (!emojiBtn.contains(e.target) && !emojiGrid.contains(e.target)) {
-			emojiGrid.classList.add('hidden');
+	// Render emoji search results
+	async function renderEmojiResults(query) {
+		emojiSearchResults.innerHTML =
+			'<div class="col-span-8 text-center text-gray-500 py-4">Searching...</div>';
+
+		const results = await searchEmojis(query, 100);
+
+		console.log('Emoji search results:', results.length, 'emojis');
+		if (results.length > 0) {
+			console.log('First result:', results[0]);
 		}
-	});
+
+		if (results.length === 0) {
+			emojiSearchResults.innerHTML =
+				'<div class="col-span-8 text-center text-gray-500 py-8">No icons found. Try a different search term.</div>';
+			emojiSearchStatus.textContent = '';
+			return;
+		}
+
+		emojiSearchStatus.textContent = `${results.length} icons found`;
+
+		emojiSearchResults.innerHTML = results
+			.map(
+				emoji => `
+			<button 
+				type="button" 
+				class="emoji-result-btn aspect-square p-2 hover:bg-white rounded-lg transition-colors border border-transparent hover:border-blue-300 cursor-pointer flex items-center justify-center group relative"
+				data-hexcode="${emoji.hexcode}"
+				data-name="${escHtml(emoji.name)}"
+				title="${escHtml(emoji.name)}"
+			>
+				<img 
+					src="${emoji.svgUrl}" 
+					alt="${escHtml(emoji.name)}" 
+					class="w-full h-full object-contain"
+					onerror="console.error('Failed to load:', this.src); this.style.display='none'; this.nextElementSibling.style.display='block';"
+				/>
+				<span class="hidden text-xs text-gray-400">${emoji.emoji || '?'}</span>
+				<div class="absolute bottom-0 left-0 right-0 bg-black/75 text-white text-[0.6rem] px-1 py-0.5 rounded-b opacity-0 group-hover:opacity-100 transition-opacity truncate">
+					${escHtml(emoji.name)}
+				</div>
+			</button>
+		`,
+			)
+			.join('');
+
+		// Add click handlers for emoji selection
+		document.querySelectorAll('.emoji-result-btn').forEach(btn => {
+			btn.addEventListener('click', () => {
+				const hexcode = btn.dataset.hexcode;
+				const name = btn.dataset.name;
+
+				hexcodeInput.value = hexcode;
+				emojiPreview.innerHTML = `<img src="${getEmojiUrl(hexcode)}" alt="${name}" class="w-full h-full object-contain p-1" onerror="this.style.display='none';" />`;
+
+				emojiSearchModal.close();
+			});
+		});
+	}
 
 	// Add category submit
 	form.addEventListener('submit', async e => {
 		e.preventDefault();
 		const name = inputEn.value.trim();
 		const spanish = inputEs.value.trim();
-		const emoji = emojiInput.value.trim() || '📝';
+		const hexcode = hexcodeInput.value.trim();
+		const color = colorInput.value.trim();
+
 		if (!name || !spanish) return;
-		// Check for duplicate (by English name)
-		const exists = await db.categories.where('name').equals(name).count();
-		if (!exists) {
-			await db.categories.add({ name, spanish, emoji });
+
+		if (editingCategory) {
+			// Update existing category
+			const oldName = editingCategory.oldName;
+
+			// Update category in database
+			await db.categories
+				.where('name')
+				.equals(oldName)
+				.modify({
+					name,
+					spanish,
+					hexcode: hexcode || '',
+					color: color || '#3b82f6',
+				});
+
+			// If name changed, update all cards that reference this category
+			if (name !== oldName) {
+				const cards = await db.cards
+					.where('categories')
+					.equals(oldName)
+					.toArray();
+				for (const card of cards) {
+					card.categories = card.categories.map(c =>
+						c === oldName ? name : c,
+					);
+					await db.cards.put(card);
+				}
+
+				// Update selected category if it was the one being edited
+				if (selectedCategory === oldName) {
+					selectedCategory = name;
+				}
+			}
+
 			await updateCategoryList();
 			await updateCategoryFilter();
 			await updateCategorySelect();
+			await updateCategoryHeader();
+			renderCards(categoryFilter.value);
+		} else {
+			// Add new category
+			const exists = await db.categories.where('name').equals(name).count();
+			if (!exists) {
+				await db.categories.add({
+					name,
+					spanish,
+					hexcode: hexcode || '',
+					color: color || '#3b82f6',
+				});
+				await updateCategoryList();
+				await updateCategoryFilter();
+				await updateCategorySelect();
+			}
 		}
-		emojiGrid.classList.add('hidden');
 		modal.close();
 	});
 }
@@ -624,20 +794,53 @@ function setupCategoryModal() {
 // Render filtered category list
 async function renderCategoryList(list) {
 	const categoryList = document.getElementById('category-list');
+
+	// Helper function to map hex color to Tailwind gradient classes
+	const hexToGradientClasses = hex => {
+		const gradientMap = {
+			'#ef4444': 'bg-gradient-to-br from-red-500 to-red-600',
+			'#f97316': 'bg-gradient-to-br from-orange-500 to-orange-600',
+			'#f59e0b': 'bg-gradient-to-br from-amber-500 to-amber-600',
+			'#eab308': 'bg-gradient-to-br from-yellow-500 to-yellow-600',
+			'#84cc16': 'bg-gradient-to-br from-lime-500 to-lime-600',
+			'#22c55e': 'bg-gradient-to-br from-green-500 to-green-600',
+			'#10b981': 'bg-gradient-to-br from-emerald-500 to-emerald-600',
+			'#14b8a6': 'bg-gradient-to-br from-teal-500 to-teal-600',
+			'#06b6d4': 'bg-gradient-to-br from-cyan-500 to-cyan-600',
+			'#0ea5e9': 'bg-gradient-to-br from-sky-500 to-sky-600',
+			'#3b82f6': 'bg-gradient-to-br from-blue-500 to-blue-600',
+			'#6366f1': 'bg-gradient-to-br from-indigo-500 to-indigo-600',
+			'#8b5cf6': 'bg-gradient-to-br from-violet-500 to-violet-600',
+			'#a855f7': 'bg-gradient-to-br from-purple-500 to-purple-600',
+			'#d946ef': 'bg-gradient-to-br from-fuchsia-500 to-fuchsia-600',
+			'#ec4899': 'bg-gradient-to-br from-pink-500 to-pink-600',
+			'#f43f5e': 'bg-gradient-to-br from-rose-500 to-rose-600',
+		};
+		return (
+			gradientMap[hex.toLowerCase()] ||
+			'bg-gradient-to-br from-blue-500 to-blue-600'
+		);
+	};
+
 	categoryList.innerHTML = list
 		.map(cat => {
-			const emoji = cat.emoji || '📝';
+			const hexcode = cat.hexcode || '';
+			const emojiDisplay = hexcode
+				? `<img src="${getEmojiUrl(hexcode)}" alt="${cat.name}" class="w-8 h-8 object-contain" />`
+				: '<span class="text-2xl">📝</span>';
 			const spanishName = cat.spanish || '';
 			const isSelected = selectedCategory === cat.name;
+			const color = cat.color || '#3b82f6';
+			const gradientClasses = hexToGradientClasses(color);
 			return `
-		<li class="group relative overflow-hidden rounded-xl transition-all ${isSelected ? 'shadow-md scale-[1.02]' : 'hover:shadow-sm hover:scale-[1.01]'}" data-name="${escAttr(cat.name)}">
-			<div class="absolute inset-0 bg-linear-to-r from-blue-500 to-indigo-500 opacity-0 transition-opacity ${isSelected ? 'opacity-10' : 'group-hover:opacity-5'}"></div>
-			<div class="relative px-4 py-3.5 flex items-center justify-between border-2 rounded-xl transition-all ${isSelected ? 'border-transparent bg-linear-to-r from-blue-500 to-indigo-500 bg-opacity-10' : 'border-transparent bg-white hover:border-gray-200'}">
+		<li class="group relative overflow-hidden rounded-xl transition-all mb-1 ${isSelected ? 'shadow-md scale-[1.02]' : 'hover:shadow-sm hover:scale-[1.01]'}" data-name="${escAttr(cat.name)}">
+			<div class="absolute inset-0 ${gradientClasses} transition-opacity ${isSelected ? 'opacity-90' : 'opacity-0 group-hover:opacity-75'}"></div>
+			<div class="relative px-4 py-3.5 flex items-center justify-between border-2 rounded-xl transition-all border-transparent ${isSelected ? '' : 'bg-white hover:border-gray-200'}">
 				<div class="flex items-center gap-3 flex-1 min-w-0">
-					<span class="text-2xl shrink-0">${emoji}</span>
+					<div class="shrink-0 w-8 h-8">${emojiDisplay}</div>
 					<div class="text-left min-w-0 flex-1">
-						<div class="font-semibold text-gray-900 text-sm truncate">${escHtml(cat.name)}</div>
-						${spanishName ? `<div class="text-xs text-gray-600 truncate">${escHtml(spanishName)}</div>` : ''}
+						${spanishName ? `<div class="font-semibold text-gray-900 text-sm truncate">${escHtml(spanishName)}</div>` : `<div class="font-semibold text-gray-900 text-sm truncate">${escHtml(cat.name)}</div>`}
+						${spanishName ? `<div class="text-xs text-gray-600 truncate">${escHtml(cat.name)}</div>` : ''}
 					</div>
 				</div>
 				<div class="edit-buttons flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -665,7 +868,8 @@ categoryList.addEventListener('click', async e => {
 	const name = li.dataset.name;
 
 	// Check if clicking edit or delete buttons
-	if (e.target.classList.contains('btn-delete-category')) {
+	if (e.target.closest('.btn-delete-category')) {
+		e.stopPropagation();
 		if (
 			confirm(`Delete category "${name}"? This will remove it from all cards.`)
 		) {
@@ -680,29 +884,15 @@ categoryList.addEventListener('click', async e => {
 			await updateCategoryList();
 			await updateCategoryFilter();
 			await updateCategorySelect();
-			updateCategoryHeader();
+			await updateCategoryHeader();
 			renderCards(categoryFilter.value);
 		}
-	} else if (e.target.classList.contains('btn-edit-category')) {
-		const newName = prompt('Rename category:', name);
-		if (newName && newName !== name) {
-			// Update category name
-			await db.categories.where('name').equals(name).modify({ name: newName });
-			// Update all cards
-			const cards = await db.cards.where('categories').equals(name).toArray();
-			for (const card of cards) {
-				card.categories = card.categories.map(c => (c === name ? newName : c));
-				await db.cards.put(card);
-			}
-			if (selectedCategory === name) {
-				selectedCategory = newName;
-			}
-			await updateCategoryList();
-			await updateCategoryFilter();
-			await updateCategorySelect();
-			updateCategoryHeader();
-			renderCards(categoryFilter.value);
-		}
+		return;
+	} else if (e.target.closest('.btn-edit-category')) {
+		e.stopPropagation();
+		// Open edit modal
+		await window.openEditCategoryModal(name);
+		return;
 	} else {
 		// Toggle category selection
 		if (selectedCategory === name) {
@@ -713,7 +903,7 @@ categoryList.addEventListener('click', async e => {
 			categoryFilter.value = name;
 		}
 		await updateCategoryList();
-		updateCategoryHeader();
+		await updateCategoryHeader();
 		renderCards(categoryFilter.value);
 	}
 });
@@ -1074,31 +1264,64 @@ let selectedCategory = '';
 
 async function updateCategoryList() {
 	const allCategories = await db.categories.orderBy('name').toArray();
+
+	// Helper function to map hex color to Tailwind gradient classes
+	const hexToGradientClasses = hex => {
+		const gradientMap = {
+			'#ef4444': 'bg-gradient-to-br from-red-500 to-red-600',
+			'#f97316': 'bg-gradient-to-br from-orange-500 to-orange-600',
+			'#f59e0b': 'bg-gradient-to-br from-amber-500 to-amber-600',
+			'#eab308': 'bg-gradient-to-br from-yellow-500 to-yellow-600',
+			'#84cc16': 'bg-gradient-to-br from-lime-500 to-lime-600',
+			'#22c55e': 'bg-gradient-to-br from-green-500 to-green-600',
+			'#10b981': 'bg-gradient-to-br from-emerald-500 to-emerald-600',
+			'#14b8a6': 'bg-gradient-to-br from-teal-500 to-teal-600',
+			'#06b6d4': 'bg-gradient-to-br from-cyan-500 to-cyan-600',
+			'#0ea5e9': 'bg-gradient-to-br from-sky-500 to-sky-600',
+			'#3b82f6': 'bg-gradient-to-br from-blue-500 to-blue-600',
+			'#6366f1': 'bg-gradient-to-br from-indigo-500 to-indigo-600',
+			'#8b5cf6': 'bg-gradient-to-br from-violet-500 to-violet-600',
+			'#a855f7': 'bg-gradient-to-br from-purple-500 to-purple-600',
+			'#d946ef': 'bg-gradient-to-br from-fuchsia-500 to-fuchsia-600',
+			'#ec4899': 'bg-gradient-to-br from-pink-500 to-pink-600',
+			'#f43f5e': 'bg-gradient-to-br from-rose-500 to-rose-600',
+		};
+		return (
+			gradientMap[hex.toLowerCase()] ||
+			'bg-gradient-to-br from-blue-500 to-blue-600'
+		);
+	};
+
 	categoryList.innerHTML = allCategories
 		.map(cat => {
-			const emoji = getCategoryEmoji(cat.name);
-			const spanishName = getCategorySpanishName(cat.name);
+			const hexcode = cat.hexcode || '';
+			const emojiDisplay = hexcode
+				? `<img src="${getEmojiUrl(hexcode)}" alt="${cat.name}" class="w-8 h-8 object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" /><span class="text-2xl shrink-0 hidden">📝</span>`
+				: '<span class="text-2xl shrink-0">📝</span>';
+			const spanishName = cat.spanish || '';
 			const isSelected = selectedCategory === cat.name;
+			const color = cat.color || '#3b82f6';
+			const gradientClasses = hexToGradientClasses(color);
 			return `
-		<li class="group relative overflow-hidden rounded-xl transition-all ${isSelected ? 'shadow-md scale-[1.02]' : 'hover:shadow-sm hover:scale-[1.01]'}" data-name="${escAttr(cat.name)}">
-			<div class="absolute inset-0 bg-linear-to-r from-blue-500 to-indigo-500 opacity-0 transition-opacity ${isSelected ? 'opacity-10' : 'group-hover:opacity-5'}"></div>
+		<li class="group relative overflow-hidden rounded-xl transition-all mb-1 ${isSelected ? 'shadow-md scale-[1.02]' : 'hover:shadow-sm hover:scale-[1.01]'}" data-name="${escAttr(cat.name)}">
+			<div class="absolute inset-0 ${gradientClasses} transition-opacity ${isSelected ? 'opacity-90' : 'opacity-0 group-hover:opacity-75'}"></div>
 			
-			<div class="relative px-4 py-3.5 flex items-center justify-between border-2 rounded-xl transition-all ${isSelected ? 'border-transparent bg-linear-to-r from-blue-500 to-indigo-500 bg-opacity-10' : 'border-transparent bg-white hover:border-gray-200'}">
+			<div class="relative px-4 py-3.5 flex items-center justify-between border-2 rounded-xl transition-all border-transparent ${isSelected ? '' : 'bg-white hover:border-gray-200'}">
 				<div class="flex items-center gap-3 flex-1 min-w-0">
-					<span class="text-2xl shrink-0">${emoji}</span>
+					<div class="shrink-0 w-8 h-8">${emojiDisplay}</div>
 					<div class="text-left min-w-0 flex-1">
-						<div class="font-semibold text-gray-900 text-sm truncate">${escHtml(cat.name)}</div>
-						${spanishName ? `<div class="text-xs text-gray-600 truncate">${escHtml(spanishName)}</div>` : ''}
+						${spanishName ? `<div class="font-semibold text-gray-900 text-sm truncate">${escHtml(spanishName)}</div>` : `<div class="font-semibold text-gray-900 text-sm truncate">${escHtml(cat.name)}</div>`}
+						${spanishName ? `<div class="text-xs text-gray-600 truncate">${escHtml(cat.name)}</div>` : ''}
 					</div>
 				</div>
 				
 				<div class="edit-buttons flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-					<button type="button" class="btn-edit-category p-1.5 hover:bg-gray-100 rounded-lg transition-colors" onclick="event.stopPropagation();">
+					<button type="button" class="btn-edit-category p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
 						<svg class="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
 						</svg>
 					</button>
-					<button type="button" class="btn-delete-category p-1.5 hover:bg-red-50 rounded-lg transition-colors" onclick="event.stopPropagation();">
+					<button type="button" class="btn-delete-category p-1.5 hover:bg-red-50 rounded-lg transition-colors">
 						<svg class="w-3.5 h-3.5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
 						</svg>
@@ -1112,34 +1335,88 @@ async function updateCategoryList() {
 }
 
 // Update category header display
-function updateCategoryHeader() {
+async function updateCategoryHeader() {
 	if (!categoryHeader) return;
 
 	if (selectedCategory) {
-		const emoji = getCategoryEmoji(selectedCategory);
-		const spanishName = getCategorySpanishName(selectedCategory);
+		// Fetch category from database to get hexcode and spanish name
+		const category = await db.categories
+			.where('name')
+			.equals(selectedCategory)
+			.first();
+		const hexcode = category?.hexcode || '';
+		const emojiDisplay = hexcode
+			? `<img src="${getEmojiUrl(hexcode)}" alt="${selectedCategory}" class="w-12 h-12 object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" /><div class="text-3xl hidden">📝</div>`
+			: '<div class="text-3xl">📝</div>';
+		const spanishName = category?.spanish || '';
 		categoryHeader.innerHTML = `
 			<div class="flex items-center gap-3">
-				<div class="text-3xl">${emoji}</div>
+				<div class="shrink-0">${emojiDisplay}</div>
 				<div>
-					<h2 class="text-2xl font-bold text-gray-900">${escHtml(selectedCategory)}</h2>
-					${spanishName ? `<p class="text-sm text-gray-600">${escHtml(spanishName)}</p>` : ''}
+					${spanishName ? `<h2 class="text-2xl font-bold text-gray-900">${escHtml(spanishName)}</h2>` : `<h2 class="text-2xl font-bold text-gray-900">${escHtml(selectedCategory)}</h2>`}
+					${spanishName ? `<p class="text-sm text-gray-600">${escHtml(selectedCategory)}</p>` : ''}
 				</div>
 			</div>
 		`;
+
+		// Update mobile category display
+		updateMobileCategoryDisplay(category, hexcode, spanishName);
 	} else {
 		categoryHeader.innerHTML = '';
+		// Show "All Cards" in mobile category section
+		updateMobileCategoryDisplay(null, '', '');
+	}
+}
+
+// Update mobile category display in header
+function updateMobileCategoryDisplay(category, hexcode, spanishName) {
+	const mobileCategorySection = document.getElementById(
+		'mobile-category-section',
+	);
+	const mobileCategoryIcon = document.getElementById('mobile-category-icon');
+	const mobileCategoryTitle = document.getElementById('mobile-category-title');
+	const mobileCategorySubtitle = document.getElementById(
+		'mobile-category-subtitle',
+	);
+
+	if (!mobileCategorySection) return;
+
+	// Show the section
+	mobileCategorySection.classList.remove('hidden');
+
+	// If no category selected, show "All Cards"
+	if (!category && !selectedCategory) {
+		mobileCategoryIcon.textContent = '📝';
+		mobileCategoryTitle.textContent = 'All Cards';
+		mobileCategorySubtitle.textContent = '';
+		return;
+	}
+
+	// Update icon
+	if (hexcode) {
+		mobileCategoryIcon.innerHTML = `<img src="${getEmojiUrl(hexcode)}" alt="${selectedCategory}" class="w-10 h-10 object-contain" onerror="this.parentElement.textContent='📝';" />`;
+	} else {
+		mobileCategoryIcon.textContent = '📝';
+	}
+
+	// Update title and subtitle
+	if (spanishName) {
+		mobileCategoryTitle.textContent = spanishName;
+		mobileCategorySubtitle.textContent = category?.name || selectedCategory;
+	} else {
+		mobileCategoryTitle.textContent = category?.name || selectedCategory;
+		mobileCategorySubtitle.textContent = '';
 	}
 }
 
 // Filter button event listeners
 if (filterAllBtn) {
-	filterAllBtn.addEventListener('click', () => {
+	filterAllBtn.addEventListener('click', async () => {
 		currentFilter = 'all';
 		selectedCategory = '';
 		if (categoryFilter) categoryFilter.value = '';
-		updateCategoryList();
-		updateCategoryHeader();
+		await updateCategoryList();
+		await updateCategoryHeader();
 		filterAllBtn.classList.add(
 			'active',
 			'bg-gradient-to-r',
@@ -1189,12 +1466,332 @@ if (filterAudioBtn) {
 
 // Initialize
 (async () => {
+	// Fetch and cache OpenMoji data
+	await fetchAndCacheEmojis();
+
 	await seedDatabase(); // Seed database with default data on first load
 	await updateCategoryList();
 	await updateCategoryFilter();
 	await updateCategorySelect();
-	updateCategoryHeader();
+	await updateCategoryHeader();
 	await renderCards(''); // Start with all cards visible, no category selected
+
+	// Remove loading screen and show content
+	const loadingScreen = document.getElementById('app-loading-screen');
+	if (loadingScreen) {
+		loadingScreen.classList.add('fade-out');
+		setTimeout(() => loadingScreen.remove(), 300);
+	}
+	document.body.classList.add('loaded');
 })().catch(err => {
 	console.error('Initialization error:', err);
+	// Remove loading screen even on error
+	const loadingScreen = document.getElementById('app-loading-screen');
+	if (loadingScreen) {
+		loadingScreen.classList.add('fade-out');
+		setTimeout(() => loadingScreen.remove(), 300);
+	}
+	document.body.classList.add('loaded');
 });
+
+// Mobile event handlers
+const btnMobileMenu = document.getElementById('btn-mobile-menu');
+const btnAddMobile = document.getElementById('btn-add-mobile');
+const categoryMenuModal = document.getElementById('category-menu-modal');
+const btnCloseCategoryMenu = document.getElementById('btn-close-category-menu');
+const categoryMenuList = document.getElementById('category-menu-list');
+const mobileSidebar = document.getElementById('mobile-sidebar');
+const mobileSidebarBackdrop = document.getElementById(
+	'mobile-sidebar-backdrop',
+);
+const btnCloseSidebar = document.getElementById('btn-close-sidebar');
+const categoryListMobile = document.getElementById('category-list-mobile');
+const btnAddCategoryMobile = document.getElementById('btn-add-category-mobile');
+const filterAllMobile = document.getElementById('filter-all-mobile');
+const filterAudioMobile = document.getElementById('filter-audio-mobile');
+
+// Mobile menu button
+if (btnMobileMenu) {
+	btnMobileMenu.addEventListener('click', () => {
+		mobileSidebar.classList.add('active');
+		const sidebarContent = document.getElementById('mobile-sidebar-content');
+		if (sidebarContent) {
+			sidebarContent.classList.remove('-translate-x-full');
+			sidebarContent.classList.add('translate-x-0');
+		}
+	});
+}
+
+// Close mobile sidebar
+if (btnCloseSidebar) {
+	btnCloseSidebar.addEventListener('click', () => {
+		mobileSidebar.classList.remove('active');
+		const sidebarContent = document.getElementById('mobile-sidebar-content');
+		if (sidebarContent) {
+			sidebarContent.classList.add('-translate-x-full');
+			sidebarContent.classList.remove('translate-x-0');
+		}
+	});
+}
+
+if (mobileSidebarBackdrop) {
+	mobileSidebarBackdrop.addEventListener('click', () => {
+		mobileSidebar.classList.remove('active');
+		const sidebarContent = document.getElementById('mobile-sidebar-content');
+		if (sidebarContent) {
+			sidebarContent.classList.add('-translate-x-full');
+			sidebarContent.classList.remove('translate-x-0');
+		}
+	});
+}
+
+// Mobile add button
+if (btnAddMobile) {
+	btnAddMobile.addEventListener('click', () => openModal());
+}
+
+// Close category menu
+if (btnCloseCategoryMenu) {
+	btnCloseCategoryMenu.addEventListener('click', () => {
+		categoryMenuModal.close();
+	});
+}
+
+// Close modal when clicking backdrop
+if (categoryMenuModal) {
+	categoryMenuModal.addEventListener('click', e => {
+		if (e.target === categoryMenuModal) {
+			categoryMenuModal.close();
+		}
+	});
+}
+
+// Sync mobile category list with desktop
+async function syncMobileCategoryList() {
+	if (!categoryListMobile) return;
+	const allCategories = await db.categories.orderBy('name').toArray();
+
+	// Use same hexToGradientClasses function
+	const hexToGradientClasses = hex => {
+		const gradientMap = {
+			'#ef4444': 'bg-gradient-to-br from-red-500 to-red-600',
+			'#f97316': 'bg-gradient-to-br from-orange-500 to-orange-600',
+			'#f59e0b': 'bg-gradient-to-br from-amber-500 to-amber-600',
+			'#eab308': 'bg-gradient-to-br from-yellow-500 to-yellow-600',
+			'#84cc16': 'bg-gradient-to-br from-lime-500 to-lime-600',
+			'#22c55e': 'bg-gradient-to-br from-green-500 to-green-600',
+			'#10b981': 'bg-gradient-to-br from-emerald-500 to-emerald-600',
+			'#14b8a6': 'bg-gradient-to-br from-teal-500 to-teal-600',
+			'#06b6d4': 'bg-gradient-to-br from-cyan-500 to-cyan-600',
+			'#0ea5e9': 'bg-gradient-to-br from-sky-500 to-sky-600',
+			'#3b82f6': 'bg-gradient-to-br from-blue-500 to-blue-600',
+			'#6366f1': 'bg-gradient-to-br from-indigo-500 to-indigo-600',
+			'#8b5cf6': 'bg-gradient-to-br from-violet-500 to-violet-600',
+			'#a855f7': 'bg-gradient-to-br from-purple-500 to-purple-600',
+			'#d946ef': 'bg-gradient-to-br from-fuchsia-500 to-fuchsia-600',
+			'#ec4899': 'bg-gradient-to-br from-pink-500 to-pink-600',
+			'#f43f5e': 'bg-gradient-to-br from-rose-500 to-rose-600',
+		};
+		return (
+			gradientMap[hex.toLowerCase()] ||
+			'bg-gradient-to-br from-blue-500 to-blue-600'
+		);
+	};
+
+	categoryListMobile.innerHTML = allCategories
+		.map(cat => {
+			const hexcode = cat.hexcode || '';
+			const emojiDisplay = hexcode
+				? `<img src="${getEmojiUrl(hexcode)}" alt="${cat.name}" class="w-8 h-8 object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" /><span class="text-2xl shrink-0 hidden">📝</span>`
+				: '<span class="text-2xl shrink-0">📝</span>';
+			const spanishName = cat.spanish || '';
+			const isSelected = selectedCategory === cat.name;
+			const color = cat.color || '#3b82f6';
+			const gradientClasses = hexToGradientClasses(color);
+			return `
+		<li class="group relative overflow-hidden rounded-xl transition-all mb-1 ${isSelected ? 'shadow-md scale-[1.02]' : 'hover:shadow-sm hover:scale-[1.01]'}" data-name="${escAttr(cat.name)}">
+			<div class="absolute inset-0 ${gradientClasses} transition-opacity ${isSelected ? 'opacity-90' : 'opacity-0 group-hover:opacity-75'}"></div>
+			
+			<div class="relative px-4 py-3.5 flex items-center justify-between border-2 rounded-xl transition-all border-transparent ${isSelected ? '' : 'bg-white hover:border-gray-200'}">
+				<div class="flex items-center gap-3 flex-1 min-w-0">
+					<div class="shrink-0 w-8 h-8">${emojiDisplay}</div>
+					<div class="text-left min-w-0 flex-1">
+						${spanishName ? `<div class="font-semibold text-gray-900 text-sm truncate">${escHtml(spanishName)}</div>` : `<div class="font-semibold text-gray-900 text-sm truncate">${escHtml(cat.name)}</div>`}
+						${spanishName ? `<div class="text-xs text-gray-600 truncate">${escHtml(cat.name)}</div>` : ''}
+					</div>
+				</div>
+			</div>
+		</li>
+	`;
+		})
+		.join('');
+
+	// Add click handlers
+	categoryListMobile.querySelectorAll('li[data-name]').forEach(li => {
+		li.addEventListener('click', async () => {
+			const name = li.dataset.name;
+			selectedCategory = name;
+			await renderCards(name);
+			await syncMobileCategoryList();
+			await updateCategoryList();
+			await updateCategoryHeader();
+
+			// Close mobile sidebar
+			mobileSidebar.classList.remove('active');
+			const sidebarContent = document.getElementById('mobile-sidebar-content');
+			if (sidebarContent) {
+				sidebarContent.classList.add('-translate-x-full');
+				sidebarContent.classList.remove('translate-x-0');
+			}
+		});
+	});
+}
+
+// Add category mobile button
+if (btnAddCategoryMobile) {
+	btnAddCategoryMobile.addEventListener('click', () => {
+		mobileSidebar.classList.remove('active');
+		const sidebarContent = document.getElementById('mobile-sidebar-content');
+		if (sidebarContent) {
+			sidebarContent.classList.add('-translate-x-full');
+			sidebarContent.classList.remove('translate-x-0');
+		}
+		// Trigger the add category modal
+		document.getElementById('btn-add-category')?.click();
+	});
+}
+
+// Mobile filter buttons
+if (filterAllMobile) {
+	filterAllMobile.addEventListener('click', async () => {
+		currentFilter = 'all';
+		selectedCategory = '';
+		await updateCategoryList();
+		await syncMobileCategoryList();
+		await updateCategoryHeader();
+		filterAllMobile.classList.add(
+			'active',
+			'bg-gradient-to-r',
+			'from-blue-500',
+			'to-indigo-500',
+			'text-white',
+			'shadow-md',
+		);
+		filterAllMobile.classList.remove('text-gray-600', 'hover:text-gray-900');
+		filterAudioMobile.classList.remove(
+			'active',
+			'bg-gradient-to-r',
+			'from-blue-500',
+			'to-indigo-500',
+			'text-white',
+			'shadow-md',
+		);
+		filterAudioMobile.classList.add('text-gray-600', 'hover:text-gray-900');
+		// Also sync desktop filters
+		if (filterAllBtn) {
+			filterAllBtn.classList.add(
+				'active',
+				'bg-gradient-to-r',
+				'from-blue-500',
+				'to-indigo-500',
+				'text-white',
+				'shadow-md',
+			);
+			filterAllBtn.classList.remove('text-gray-600', 'hover:text-gray-900');
+		}
+		if (filterAudioBtn) {
+			filterAudioBtn.classList.remove(
+				'active',
+				'bg-gradient-to-r',
+				'from-blue-500',
+				'to-indigo-500',
+				'text-white',
+				'shadow-md',
+			);
+			filterAudioBtn.classList.add('text-gray-600', 'hover:text-gray-900');
+		}
+		renderCards('');
+	});
+}
+
+if (filterAudioMobile) {
+	filterAudioMobile.addEventListener('click', () => {
+		currentFilter = 'audio';
+		filterAudioMobile.classList.add(
+			'active',
+			'bg-gradient-to-r',
+			'from-blue-500',
+			'to-indigo-500',
+			'text-white',
+			'shadow-md',
+		);
+		filterAudioMobile.classList.remove('text-gray-600', 'hover:text-gray-900');
+		filterAllMobile.classList.remove(
+			'active',
+			'bg-gradient-to-r',
+			'from-blue-500',
+			'to-indigo-500',
+			'text-white',
+			'shadow-md',
+		);
+		filterAllMobile.classList.add('text-gray-600', 'hover:text-gray-900');
+		// Also sync desktop filters
+		if (filterAudioBtn) {
+			filterAudioBtn.classList.add(
+				'active',
+				'bg-gradient-to-r',
+				'from-blue-500',
+				'to-indigo-500',
+				'text-white',
+				'shadow-md',
+			);
+			filterAudioBtn.classList.remove('text-gray-600', 'hover:text-gray-900');
+		}
+		if (filterAllBtn) {
+			filterAllBtn.classList.remove(
+				'active',
+				'bg-gradient-to-r',
+				'from-blue-500',
+				'to-indigo-500',
+				'text-white',
+				'shadow-md',
+			);
+			filterAllBtn.classList.add('text-gray-600', 'hover:text-gray-900');
+		}
+		renderCards(categoryFilter.value);
+	});
+}
+
+// Initialize mobile category list on load
+syncMobileCategoryList();
+
+// Debug utilities for emoji troubleshooting
+window.debugClearEmojiCache = async () => {
+	console.log('Clearing emoji cache...');
+	const result = await clearEmojiCache();
+	console.log('Cache cleared:', result);
+	console.log('Reloading...');
+	window.location.reload();
+};
+
+window.debugTestEmoji = async (searchTerm = 'smile') => {
+	console.log('Searching for:', searchTerm);
+	const results = await searchEmojis(searchTerm, 5);
+	console.log('Results:', results);
+	if (results.length > 0) {
+		console.log('Testing first result URL:', results[0].svgUrl);
+		const img = new Image();
+		img.onload = () => console.log('✅ Image loaded successfully!');
+		img.onerror = () => console.error('❌ Image failed to load');
+		img.src = results[0].svgUrl;
+	}
+};
+
+window.debugCheckCache = async () => {
+	const count = await db.emojis.count();
+	console.log('Emojis in cache:', count);
+	if (count > 0) {
+		const sample = await db.emojis.limit(5).toArray();
+		console.log('Sample emojis:', sample);
+	}
+};

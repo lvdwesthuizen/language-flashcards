@@ -6,10 +6,13 @@ export const db = new Dexie('SpanishCards');
 // v2: add tags
 // v3: add wordTranslations
 // v4: add categories table, migrate tags to categories
-db.version(4)
+// v5: add emojis table for OpenMoji data
+// v6: add color field to categories
+db.version(5)
 	.stores({
 		cards: '++id, createdAt, *categories',
 		categories: '++id, name',
+		emojis: '++id, hexcode, annotation, *tags, group, subgroups',
 	})
 	.upgrade(async tx => {
 		// Migrate cards.tags to cards.categories
@@ -32,6 +35,40 @@ db.version(4)
 				!(await tx.table('categories').where('name').equals(name).count())
 			) {
 				await tx.table('categories').add({ name });
+			}
+		}
+	});
+
+// v6: add color field to categories
+db.version(6)
+	.stores({
+		cards: '++id, createdAt, *categories',
+		categories: '++id, name',
+		emojis: '++id, hexcode, annotation, *tags, group, subgroups',
+	})
+	.upgrade(async tx => {
+		// Add default colors to existing categories
+		const defaultColors = [
+			'#ef4444', // red
+			'#f97316', // orange
+			'#f59e0b', // amber
+			'#84cc16', // lime
+			'#10b981', // emerald
+			'#14b8a6', // teal
+			'#06b6d4', // cyan
+			'#3b82f6', // blue
+			'#6366f1', // indigo
+			'#8b5cf6', // violet
+			'#a855f7', // purple
+			'#ec4899', // pink
+		];
+
+		const categories = await tx.table('categories').toArray();
+		for (let i = 0; i < categories.length; i++) {
+			const category = categories[i];
+			if (!category.color) {
+				category.color = defaultColors[i % defaultColors.length];
+				await tx.table('categories').put(category);
 			}
 		}
 	});
