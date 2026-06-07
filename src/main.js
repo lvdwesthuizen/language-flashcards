@@ -534,7 +534,7 @@ categoryChips.addEventListener('click', e => {
 });
 
 // --- Inject category modal HTML on load ---
-fetch('public/category-modal.html')
+fetch(import.meta.env.BASE_URL + 'category-modal.html')
 	.then(r => r.text())
 	.then(html => {
 		document.getElementById('category-modal-container').innerHTML = html;
@@ -795,33 +795,6 @@ function setupCategoryModal() {
 async function renderCategoryList(list) {
 	const categoryList = document.getElementById('category-list');
 
-	// Helper function to map hex color to Tailwind gradient classes
-	const hexToGradientClasses = hex => {
-		const gradientMap = {
-			'#ef4444': 'bg-gradient-to-br from-red-500 to-red-600',
-			'#f97316': 'bg-gradient-to-br from-orange-500 to-orange-600',
-			'#f59e0b': 'bg-gradient-to-br from-amber-500 to-amber-600',
-			'#eab308': 'bg-gradient-to-br from-yellow-500 to-yellow-600',
-			'#84cc16': 'bg-gradient-to-br from-lime-500 to-lime-600',
-			'#22c55e': 'bg-gradient-to-br from-green-500 to-green-600',
-			'#10b981': 'bg-gradient-to-br from-emerald-500 to-emerald-600',
-			'#14b8a6': 'bg-gradient-to-br from-teal-500 to-teal-600',
-			'#06b6d4': 'bg-gradient-to-br from-cyan-500 to-cyan-600',
-			'#0ea5e9': 'bg-gradient-to-br from-sky-500 to-sky-600',
-			'#3b82f6': 'bg-gradient-to-br from-blue-500 to-blue-600',
-			'#6366f1': 'bg-gradient-to-br from-indigo-500 to-indigo-600',
-			'#8b5cf6': 'bg-gradient-to-br from-violet-500 to-violet-600',
-			'#a855f7': 'bg-gradient-to-br from-purple-500 to-purple-600',
-			'#d946ef': 'bg-gradient-to-br from-fuchsia-500 to-fuchsia-600',
-			'#ec4899': 'bg-gradient-to-br from-pink-500 to-pink-600',
-			'#f43f5e': 'bg-gradient-to-br from-rose-500 to-rose-600',
-		};
-		return (
-			gradientMap[hex.toLowerCase()] ||
-			'bg-gradient-to-br from-blue-500 to-blue-600'
-		);
-	};
-
 	categoryList.innerHTML = list
 		.map(cat => {
 			const hexcode = cat.hexcode || '';
@@ -831,10 +804,9 @@ async function renderCategoryList(list) {
 			const spanishName = cat.spanish || '';
 			const isSelected = selectedCategory === cat.name;
 			const color = cat.color || '#3b82f6';
-			const gradientClasses = hexToGradientClasses(color);
 			return `
 		<li class="group relative overflow-hidden rounded-xl transition-all mb-1 ${isSelected ? 'shadow-md scale-[1.02]' : 'hover:shadow-sm hover:scale-[1.01]'}" data-name="${escAttr(cat.name)}">
-			<div class="absolute inset-0 ${gradientClasses} transition-opacity ${isSelected ? 'opacity-90' : 'opacity-0 group-hover:opacity-75'}"></div>
+			<div class="absolute inset-0 transition-opacity ${isSelected ? 'opacity-90' : 'opacity-0 group-hover:opacity-75'}" style="background: linear-gradient(to bottom right, ${color}, ${color}dd);"></div>
 			<div class="relative px-4 py-3.5 flex items-center justify-between border-2 rounded-xl transition-all border-transparent ${isSelected ? '' : 'bg-white hover:border-gray-200'}">
 				<div class="flex items-center gap-3 flex-1 min-w-0">
 					<div class="shrink-0 w-8 h-8">${emojiDisplay}</div>
@@ -1265,33 +1237,6 @@ let selectedCategory = '';
 async function updateCategoryList() {
 	const allCategories = await db.categories.orderBy('name').toArray();
 
-	// Helper function to map hex color to Tailwind gradient classes
-	const hexToGradientClasses = hex => {
-		const gradientMap = {
-			'#ef4444': 'bg-gradient-to-br from-red-500 to-red-600',
-			'#f97316': 'bg-gradient-to-br from-orange-500 to-orange-600',
-			'#f59e0b': 'bg-gradient-to-br from-amber-500 to-amber-600',
-			'#eab308': 'bg-gradient-to-br from-yellow-500 to-yellow-600',
-			'#84cc16': 'bg-gradient-to-br from-lime-500 to-lime-600',
-			'#22c55e': 'bg-gradient-to-br from-green-500 to-green-600',
-			'#10b981': 'bg-gradient-to-br from-emerald-500 to-emerald-600',
-			'#14b8a6': 'bg-gradient-to-br from-teal-500 to-teal-600',
-			'#06b6d4': 'bg-gradient-to-br from-cyan-500 to-cyan-600',
-			'#0ea5e9': 'bg-gradient-to-br from-sky-500 to-sky-600',
-			'#3b82f6': 'bg-gradient-to-br from-blue-500 to-blue-600',
-			'#6366f1': 'bg-gradient-to-br from-indigo-500 to-indigo-600',
-			'#8b5cf6': 'bg-gradient-to-br from-violet-500 to-violet-600',
-			'#a855f7': 'bg-gradient-to-br from-purple-500 to-purple-600',
-			'#d946ef': 'bg-gradient-to-br from-fuchsia-500 to-fuchsia-600',
-			'#ec4899': 'bg-gradient-to-br from-pink-500 to-pink-600',
-			'#f43f5e': 'bg-gradient-to-br from-rose-500 to-rose-600',
-		};
-		return (
-			gradientMap[hex.toLowerCase()] ||
-			'bg-gradient-to-br from-blue-500 to-blue-600'
-		);
-	};
-
 	categoryList.innerHTML = allCategories
 		.map(cat => {
 			const hexcode = cat.hexcode || '';
@@ -1301,10 +1246,9 @@ async function updateCategoryList() {
 			const spanishName = cat.spanish || '';
 			const isSelected = selectedCategory === cat.name;
 			const color = cat.color || '#3b82f6';
-			const gradientClasses = hexToGradientClasses(color);
 			return `
 		<li class="group relative overflow-hidden rounded-xl transition-all mb-1 ${isSelected ? 'shadow-md scale-[1.02]' : 'hover:shadow-sm hover:scale-[1.01]'}" data-name="${escAttr(cat.name)}">
-			<div class="absolute inset-0 ${gradientClasses} transition-opacity ${isSelected ? 'opacity-90' : 'opacity-0 group-hover:opacity-75'}"></div>
+			<div class="absolute inset-0 transition-opacity ${isSelected ? 'opacity-90' : 'opacity-0 group-hover:opacity-75'}" style="background: linear-gradient(to bottom right, ${color}, ${color}dd);"></div>
 			
 			<div class="relative px-4 py-3.5 flex items-center justify-between border-2 rounded-xl transition-all border-transparent ${isSelected ? '' : 'bg-white hover:border-gray-200'}">
 				<div class="flex items-center gap-3 flex-1 min-w-0">
@@ -1571,33 +1515,6 @@ async function syncMobileCategoryList() {
 	if (!categoryListMobile) return;
 	const allCategories = await db.categories.orderBy('name').toArray();
 
-	// Use same hexToGradientClasses function
-	const hexToGradientClasses = hex => {
-		const gradientMap = {
-			'#ef4444': 'bg-gradient-to-br from-red-500 to-red-600',
-			'#f97316': 'bg-gradient-to-br from-orange-500 to-orange-600',
-			'#f59e0b': 'bg-gradient-to-br from-amber-500 to-amber-600',
-			'#eab308': 'bg-gradient-to-br from-yellow-500 to-yellow-600',
-			'#84cc16': 'bg-gradient-to-br from-lime-500 to-lime-600',
-			'#22c55e': 'bg-gradient-to-br from-green-500 to-green-600',
-			'#10b981': 'bg-gradient-to-br from-emerald-500 to-emerald-600',
-			'#14b8a6': 'bg-gradient-to-br from-teal-500 to-teal-600',
-			'#06b6d4': 'bg-gradient-to-br from-cyan-500 to-cyan-600',
-			'#0ea5e9': 'bg-gradient-to-br from-sky-500 to-sky-600',
-			'#3b82f6': 'bg-gradient-to-br from-blue-500 to-blue-600',
-			'#6366f1': 'bg-gradient-to-br from-indigo-500 to-indigo-600',
-			'#8b5cf6': 'bg-gradient-to-br from-violet-500 to-violet-600',
-			'#a855f7': 'bg-gradient-to-br from-purple-500 to-purple-600',
-			'#d946ef': 'bg-gradient-to-br from-fuchsia-500 to-fuchsia-600',
-			'#ec4899': 'bg-gradient-to-br from-pink-500 to-pink-600',
-			'#f43f5e': 'bg-gradient-to-br from-rose-500 to-rose-600',
-		};
-		return (
-			gradientMap[hex.toLowerCase()] ||
-			'bg-gradient-to-br from-blue-500 to-blue-600'
-		);
-	};
-
 	categoryListMobile.innerHTML = allCategories
 		.map(cat => {
 			const hexcode = cat.hexcode || '';
@@ -1607,10 +1524,9 @@ async function syncMobileCategoryList() {
 			const spanishName = cat.spanish || '';
 			const isSelected = selectedCategory === cat.name;
 			const color = cat.color || '#3b82f6';
-			const gradientClasses = hexToGradientClasses(color);
 			return `
 		<li class="group relative overflow-hidden rounded-xl transition-all mb-1 ${isSelected ? 'shadow-md scale-[1.02]' : 'hover:shadow-sm hover:scale-[1.01]'}" data-name="${escAttr(cat.name)}">
-			<div class="absolute inset-0 ${gradientClasses} transition-opacity ${isSelected ? 'opacity-90' : 'opacity-0 group-hover:opacity-75'}"></div>
+			<div class="absolute inset-0 transition-opacity ${isSelected ? 'opacity-90' : 'opacity-0 group-hover:opacity-75'}" style="background: linear-gradient(to bottom right, ${color}, ${color}dd);"></div>
 			
 			<div class="relative px-4 py-3.5 flex items-center justify-between border-2 rounded-xl transition-all border-transparent ${isSelected ? '' : 'bg-white hover:border-gray-200'}">
 				<div class="flex items-center gap-3 flex-1 min-w-0">
