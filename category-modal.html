@@ -6,7 +6,7 @@
     <label class="flex flex-col gap-1.5 text-[0.85rem] font-semibold text-app-text-muted mb-4">
       Icon
       <div class="flex items-center gap-3">
-        <div id="selected-emoji-preview" class="w-12 h-12 flex items-center justify-center text-2xl">
+        <div id="selected-emoji-preview" class="w-12 h-12 flex items-center justify-center text-2xl overflow-hidden">
           📝
         </div>
         <button type="button" id="category-emoji-search-btn" class="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-xl transition-all">
@@ -19,8 +19,13 @@
     <label class="flex flex-col gap-1.5 text-[0.85rem] font-semibold text-app-text-muted mb-4">
       Color
       <div class="flex items-center gap-3">
-        <input type="color" id="input-category-color" name="color" value="#3b82f6" class="w-16 h-12 rounded-xl border-2 border-gray-300 cursor-pointer">
-        <span class="text-sm text-gray-600">Choose a color for this category</span>
+        <div id="color-swatch" class="w-12 h-12 rounded-lg flex-shrink-0" style="background-color: #3b82f6;"></div>
+        <div class="relative">
+          <button type="button" id="color-picker-btn" class="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-xl transition-all">
+            Choose Colour
+          </button>
+          <input type="color" id="input-category-color" name="color" value="#3b82f6" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer" tabindex="-1">
+        </div>
       </div>
     </label>
     
@@ -63,8 +68,8 @@
     
     <div id="emoji-search-status" class="text-sm text-gray-500 mb-2"></div>
     
-    <div id="emoji-search-results" class="flex-1 overflow-y-auto grid grid-cols-8 gap-2 p-2 border border-gray-200 rounded-xl bg-gray-50">
-      <div class="col-span-8 text-center text-gray-500 py-8">Loading icons...</div>
+    <div id="emoji-search-results" class="flex-1 overflow-y-auto grid grid-cols-5 gap-2 p-2 border border-gray-200 rounded-xl bg-gray-50">
+      <div class="col-span-5 text-center text-gray-500 py-8">Loading icons...</div>
     </div>
   </div>
 </dialog>
