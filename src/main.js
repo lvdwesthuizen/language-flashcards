@@ -590,6 +590,7 @@ function setupCategoryModal() {
 		inputEs.value = '';
 		hexcodeInput.value = '';
 		colorInput.value = '#3b82f6'; // Default blue
+		if (colorSwatch) colorSwatch.style.backgroundColor = '#3b82f6';
 		emojiPreview.innerHTML = '📝';
 		inputEn.focus();
 	};
@@ -610,6 +611,7 @@ function setupCategoryModal() {
 		inputEs.value = category.spanish || '';
 		hexcodeInput.value = category.hexcode || '';
 		colorInput.value = category.color || '#3b82f6';
+		if (colorSwatch) colorSwatch.style.backgroundColor = colorInput.value;
 
 		if (category.hexcode) {
 			emojiPreview.innerHTML = `<img src="${getEmojiUrl(category.hexcode)}" alt="${category.name}" class="w-full h-full object-contain p-1" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" /><span class="text-3xl hidden">📝</span>`;
@@ -618,6 +620,12 @@ function setupCategoryModal() {
 		}
 		inputEn.focus();
 	};
+
+	// Update colour swatch in real time
+	const colorSwatch = document.getElementById('color-swatch');
+	colorInput.addEventListener('input', () => {
+		if (colorSwatch) colorSwatch.style.backgroundColor = colorInput.value;
+	});
 
 	// Open category modal for adding
 	btnAddCategory.addEventListener('click', () => {
@@ -645,11 +653,13 @@ function setupCategoryModal() {
 
 	// Close emoji search
 	emojiSearchClose.addEventListener('click', () => {
+		window._mobileEmojiTarget = null;
 		emojiSearchModal.close();
 	});
 
 	emojiSearchModal.addEventListener('click', e => {
 		if (e.target === emojiSearchModal) {
+			window._mobileEmojiTarget = null;
 			emojiSearchModal.close();
 		}
 	});
@@ -677,7 +687,7 @@ function setupCategoryModal() {
 
 		if (results.length === 0) {
 			emojiSearchResults.innerHTML =
-				'<div class="col-span-8 text-center text-gray-500 py-8">No icons found. Try a different search term.</div>';
+				'<div class="col-span-5 text-center text-gray-500 py-8">No icons found. Try a different search term.</div>';
 			emojiSearchStatus.textContent = '';
 			return;
 		}
@@ -714,9 +724,16 @@ function setupCategoryModal() {
 			btn.addEventListener('click', () => {
 				const hexcode = btn.dataset.hexcode;
 				const name = btn.dataset.name;
+				const imgHtml = `<img src="${getEmojiUrl(hexcode)}" alt="${name}" class="w-full h-full object-contain p-1" onerror="this.style.display='none';" />`;
 
-				hexcodeInput.value = hexcode;
-				emojiPreview.innerHTML = `<img src="${getEmojiUrl(hexcode)}" alt="${name}" class="w-full h-full object-contain p-1" onerror="this.style.display='none';" />`;
+				if (window._mobileEmojiTarget) {
+					window._mobileEmojiTarget.hexcodeInput.value = hexcode;
+					window._mobileEmojiTarget.preview.innerHTML = imgHtml;
+					window._mobileEmojiTarget = null;
+				} else {
+					hexcodeInput.value = hexcode;
+					emojiPreview.innerHTML = imgHtml;
+				}
 
 				emojiSearchModal.close();
 			});
@@ -1519,18 +1536,18 @@ async function syncMobileCategoryList() {
 		.map(cat => {
 			const hexcode = cat.hexcode || '';
 			const emojiDisplay = hexcode
-				? `<img src="${getEmojiUrl(hexcode)}" alt="${cat.name}" class="w-8 h-8 object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" /><span class="text-2xl shrink-0 hidden">📝</span>`
-				: '<span class="text-2xl shrink-0">📝</span>';
+				? `<img src="${getEmojiUrl(hexcode)}" alt="${cat.name}" class="w-12 h-12 object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" /><span class="text-4xl shrink-0 hidden">📝</span>`
+				: '<span class="text-4xl shrink-0">📝</span>';
 			const spanishName = cat.spanish || '';
 			const isSelected = selectedCategory === cat.name;
 			const color = cat.color || '#3b82f6';
 			return `
 		<li class="group relative overflow-hidden rounded-xl transition-all mb-1 ${isSelected ? 'shadow-md scale-[1.02]' : 'hover:shadow-sm hover:scale-[1.01]'}" data-name="${escAttr(cat.name)}">
 			<div class="absolute inset-0 transition-opacity ${isSelected ? 'opacity-90' : 'opacity-0 group-hover:opacity-75'}" style="background: linear-gradient(to bottom right, ${color}, ${color}dd);"></div>
-			
+
 			<div class="relative px-4 py-3.5 flex items-center justify-between border-2 rounded-xl transition-all border-transparent ${isSelected ? '' : 'bg-white hover:border-gray-200'}">
 				<div class="flex items-center gap-3 flex-1 min-w-0">
-					<div class="shrink-0 w-8 h-8">${emojiDisplay}</div>
+					<div class="shrink-0 w-12 h-12">${emojiDisplay}</div>
 					<div class="text-left min-w-0 flex-1">
 						${spanishName ? `<div class="font-semibold text-gray-900 text-sm truncate">${escHtml(spanishName)}</div>` : `<div class="font-semibold text-gray-900 text-sm truncate">${escHtml(cat.name)}</div>`}
 						${spanishName ? `<div class="text-xs text-gray-600 truncate">${escHtml(cat.name)}</div>` : ''}
@@ -1563,17 +1580,87 @@ async function syncMobileCategoryList() {
 	});
 }
 
-// Add category mobile button
+// Inline add-category form in mobile sidebar
+const mobileAddFormPanel = document.getElementById('mobile-add-category-form-panel');
+const mobileCategoryForm = document.getElementById('mobile-category-form');
+const mobileCategoryEn = document.getElementById('mobile-category-en');
+const mobileCategoryEs = document.getElementById('mobile-category-es');
+const mobileCategoryHexcode = document.getElementById('mobile-category-hexcode');
+const mobileCategoryColor = document.getElementById('mobile-category-color');
+const mobileEmojiPreview = document.getElementById('mobile-emoji-preview');
+const mobileEmojiSearchBtn = document.getElementById('mobile-emoji-search-btn');
+const mobileCategoryCancel = document.getElementById('mobile-category-cancel');
+const mobileColorSwatch = document.getElementById('mobile-color-swatch');
+
+if (mobileCategoryColor) {
+	mobileCategoryColor.addEventListener('input', () => {
+		if (mobileColorSwatch) mobileColorSwatch.style.backgroundColor = mobileCategoryColor.value;
+	});
+}
+
+function openMobileAddForm() {
+	if (!mobileAddFormPanel) return;
+	mobileCategoryForm.reset();
+	mobileCategoryHexcode.value = '';
+	mobileCategoryColor.value = '#3b82f6';
+	if (mobileColorSwatch) mobileColorSwatch.style.backgroundColor = '#3b82f6';
+	mobileEmojiPreview.innerHTML = '📝';
+	mobileAddFormPanel.classList.remove('hidden');
+	mobileCategoryEn.focus();
+}
+
+function closeMobileAddForm() {
+	if (!mobileAddFormPanel) return;
+	mobileAddFormPanel.classList.add('hidden');
+}
+
 if (btnAddCategoryMobile) {
 	btnAddCategoryMobile.addEventListener('click', () => {
-		mobileSidebar.classList.remove('active');
-		const sidebarContent = document.getElementById('mobile-sidebar-content');
-		if (sidebarContent) {
-			sidebarContent.classList.add('-translate-x-full');
-			sidebarContent.classList.remove('translate-x-0');
+		if (mobileAddFormPanel && !mobileAddFormPanel.classList.contains('hidden')) {
+			closeMobileAddForm();
+		} else {
+			openMobileAddForm();
 		}
-		// Trigger the add category modal
-		document.getElementById('btn-add-category')?.click();
+	});
+}
+
+if (mobileCategoryCancel) {
+	mobileCategoryCancel.addEventListener('click', closeMobileAddForm);
+}
+
+if (mobileEmojiSearchBtn) {
+	mobileEmojiSearchBtn.addEventListener('click', async () => {
+		// Reuse the same emoji search modal
+		const emojiSearchModal = document.getElementById('emoji-search-modal');
+		if (!emojiSearchModal) return;
+		emojiSearchModal.showModal();
+		// Temporarily redirect emoji selection to mobile preview
+		window._mobileEmojiTarget = { hexcodeInput: mobileCategoryHexcode, preview: mobileEmojiPreview };
+	});
+}
+
+if (mobileCategoryForm) {
+	mobileCategoryForm.addEventListener('submit', async e => {
+		e.preventDefault();
+		const name = mobileCategoryEn.value.trim();
+		const spanish = mobileCategoryEs.value.trim();
+		const hexcode = mobileCategoryHexcode.value.trim();
+		const color = mobileCategoryColor.value.trim();
+		if (!name || !spanish) return;
+		const exists = await db.categories.where('name').equals(name).count();
+		if (!exists) {
+			await db.categories.add({
+				name,
+				spanish,
+				hexcode: hexcode || '',
+				color: color || '#3b82f6',
+			});
+			await updateCategoryList();
+			await updateCategoryFilter();
+			await updateCategorySelect();
+			await syncMobileCategoryList();
+		}
+		closeMobileAddForm();
 	});
 }
 
