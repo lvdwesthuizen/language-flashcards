@@ -160,7 +160,7 @@
 
 @layer components {
 	.input-field {
-		@apply w-full border-[3px] border-input-border rounded-xl px-4 pr-12 py-2.5 text-base bg-white transition-colors duration-200;
+		@apply w-full border-[2px] border-input-border rounded-xl px-4 pr-12 py-2.5 text-base bg-white transition-colors duration-200;
 	}
 
 	.input-field:focus {

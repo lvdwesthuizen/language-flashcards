@@ -80,6 +80,8 @@ let recordingTimer = null;
 let previewAudio = null;
 let recordingMimeType = '';
 let currentFilter = 'all'; // 'all' or 'audio'
+let currentSort = 'createdAt-desc';
+const difficultyOrder = { beginner: 0, intermediate: 1, advanced: 2 };
 const MAX_RECORDING_DURATION = 30000; // 30 seconds
 async function renderCards(filterCategory = '') {
 	let cards;
@@ -91,6 +93,18 @@ async function renderCards(filterCategory = '') {
 	} else {
 		cards = await db.cards.orderBy('createdAt').toArray();
 	}
+	const [sortField, sortDir] = currentSort.split('-');
+	cards.sort((a, b) => {
+		let aVal, bVal;
+		if (sortField === 'difficulty') {
+			aVal = difficultyOrder[a.difficulty || 'beginner'];
+			bVal = difficultyOrder[b.difficulty || 'beginner'];
+		} else {
+			aVal = a.createdAt || 0;
+			bVal = b.createdAt || 0;
+		}
+		return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+	});
 	// Apply audio filter
 	if (currentFilter === 'audio') {
 		cards = cards.filter(card => card.audioBlob);
@@ -889,6 +903,13 @@ btnDeleteAudio.addEventListener('click', deleteAudio);
 categoryFilter.addEventListener('change', () => {
 	renderCards(categoryFilter.value);
 });
+const sortOrderSelect = document.getElementById('sort-order');
+if (sortOrderSelect) {
+	sortOrderSelect.addEventListener('change', () => {
+		currentSort = sortOrderSelect.value;
+		renderCards(categoryFilter.value);
+	});
+}
 cardForm.addEventListener('submit', async e => {
 	e.preventDefault();
 	const english = inputEn.value.trim();

@@ -102,96 +102,299 @@ db.version(7)
 // Default seed data
 const seedData = [
 	{
-		category: 'Shopping',
-		spanishName: 'Compras',
-		phrases: [
-			{ english: 'How much does this cost?', spanish: '¿Cuánto cuesta esto?' },
-			{
-				english: 'I would like to buy this',
-				spanish: 'Me gustaría comprar esto',
-			},
-			{ english: 'Do you accept cards?', spanish: '¿Aceptan tarjetas?' },
-		],
-	},
-	{
-		category: 'Breakfast',
-		spanishName: 'Desayuno',
+		category: 'Introducing myself',
+		spanishName: 'Presentándome',
+		color: '#3b82f6',
+		hexcode: '1F44B',
 		phrases: [
 			{
-				english: 'I like to take my coffee black',
-				spanish: 'Me gusta tomar mi café solo',
+				english: 'My name is Ana',
+				spanish: 'Me llamo Ana',
+				difficulty: 'beginner',
 			},
 			{
-				english:
-					'I wake up at 6:30 in the morning, and I drink a cup of coffee.',
-				spanish:
-					'Me despierto a las 6:30 de la mañana y tomo una taza de café.',
+				english: 'Nice to meet you',
+				spanish: 'Mucho gusto',
+				difficulty: 'beginner',
 			},
 			{
-				english: 'Good morning my love, did you sleep well?',
-				spanish: 'Buenos días mi amor, ¿dormiste bien?',
+				english: 'I am from the United States',
+				spanish: 'Soy de los Estados Unidos',
+				difficulty: 'intermediate',
 			},
 			{
-				english: 'Can I get you a cup of coffee?',
-				spanish: '¿Te puedo traer una taza de café?',
+				english: 'I am learning Spanish because I love the culture',
+				spanish: 'Estoy aprendiendo español porque me encanta la cultura',
+				difficulty: 'advanced',
 			},
-			{ english: 'I will make the coffee.', spanish: 'Yo haré el café.' },
-		],
-	},
-	{
-		category: 'The Home',
-		spanishName: 'El hogar',
-		phrases: [
-			{ english: 'Where is the bathroom?', spanish: '¿Dónde está el baño?' },
-			{ english: 'Make yourself at home', spanish: 'Siéntete como en casa' },
 			{
-				english: 'The kitchen is very clean',
-				spanish: 'La cocina está muy limpia',
+				english: 'I work as a teacher and I live in the city',
+				spanish: 'Trabajo como profesor y vivo en la ciudad',
+				difficulty: 'intermediate',
 			},
 		],
 	},
 	{
-		category: 'Talking about myself',
-		spanishName: 'Hablando de mí mismo',
+		category: 'Ordering food',
+		spanishName: 'Pidiendo comida',
+		color: '#f97316',
+		hexcode: '1F37D',
 		phrases: [
-			{ english: 'My name is...', spanish: 'Me llamo...' },
-			{ english: 'I am from...', spanish: 'Soy de...' },
-			{ english: 'I work as...', spanish: 'Trabajo como...' },
+			{
+				english: 'The menu, please',
+				spanish: 'El menú, por favor',
+				difficulty: 'beginner',
+			},
+			{
+				english: 'I would like a coffee',
+				spanish: 'Quisiera un café',
+				difficulty: 'beginner',
+			},
+			{
+				english: 'What do you recommend?',
+				spanish: '¿Qué me recomienda?',
+				difficulty: 'beginner',
+			},
+			{
+				english: 'I would like to order the chicken with rice',
+				spanish: 'Me gustaría pedir el pollo con arroz',
+				difficulty: 'intermediate',
+			},
+			{
+				english: 'Could you bring me the bill when you have a moment?',
+				spanish: '¿Me podría traer la cuenta cuando tenga un momento?',
+				difficulty: 'advanced',
+			},
 		],
 	},
 	{
-		category: 'Washing clothes',
+		category: 'Common questions',
+		spanishName: 'Preguntas comunes',
+		color: '#a855f7',
+		hexcode: '2753',
+		phrases: [
+			{
+				english: 'How are you?',
+				spanish: '¿Cómo estás?',
+				difficulty: 'beginner',
+			},
+			{
+				english: 'What time is it?',
+				spanish: '¿Qué hora es?',
+				difficulty: 'beginner',
+			},
+			{
+				english: 'How do you say this in Spanish?',
+				spanish: '¿Cómo se dice esto en español?',
+				difficulty: 'intermediate',
+			},
+			{
+				english: 'Can you repeat that more slowly, please?',
+				spanish: '¿Puede repetir eso más despacio, por favor?',
+				difficulty: 'intermediate',
+			},
+			{
+				english: 'Could you help me, I do not understand what this means?',
+				spanish: '¿Podría ayudarme, no entiendo lo que significa esto?',
+				difficulty: 'advanced',
+			},
+		],
+	},
+	{
+		category: 'Buying groceries',
+		spanishName: 'Comprando comestibles',
+		color: '#10b981',
+		hexcode: '1F6D2',
+		phrases: [
+			{
+				english: 'How much does it cost?',
+				spanish: '¿Cuánto cuesta?',
+				difficulty: 'beginner',
+			},
+			{
+				english: 'I need some bread',
+				spanish: 'Necesito un poco de pan',
+				difficulty: 'beginner',
+			},
+			{
+				english: 'Where are the vegetables?',
+				spanish: '¿Dónde están las verduras?',
+				difficulty: 'beginner',
+			},
+			{
+				english: 'Do you have fresh fruit today?',
+				spanish: '¿Tiene fruta fresca hoy?',
+				difficulty: 'intermediate',
+			},
+			{
+				english: 'I am looking for milk, eggs, and a dozen apples',
+				spanish: 'Estoy buscando leche, huevos y una docena de manzanas',
+				difficulty: 'advanced',
+			},
+		],
+	},
+	{
+		category: 'Doing laundry',
 		spanishName: 'Lavando la ropa',
+		color: '#06b6d4',
+		hexcode: '1F9FA',
 		phrases: [
-			{ english: 'I need to do laundry', spanish: 'Necesito lavar la ropa' },
-			{ english: 'The clothes are clean', spanish: 'La ropa está limpia' },
-		],
-	},
-	{
-		category: 'Daily routines',
-		spanishName: 'Rutinas diarias',
-		phrases: [
-			{ english: 'I wake up early', spanish: 'Me despierto temprano' },
-			{ english: 'I go to bed late', spanish: 'Me acuesto tarde' },
-		],
-	},
-	{
-		category: 'Greetings',
-		spanishName: 'Saludos',
-		phrases: [
-			{ english: 'Hello, how are you?', spanish: 'Hola, ¿cómo estás?' },
-			{ english: 'Good afternoon', spanish: 'Buenas tardes' },
-			{ english: 'See you later', spanish: 'Hasta luego' },
-		],
-	},
-	{
-		category: 'Drinking coffee',
-		spanishName: 'Tomar café',
-		phrases: [
-			{ english: 'I love coffee', spanish: 'Me encanta el café' },
 			{
-				english: 'Would you like some coffee?',
-				spanish: '¿Te gustaría un café?',
+				english: 'The clothes are clean',
+				spanish: 'La ropa está limpia',
+				difficulty: 'beginner',
+			},
+			{
+				english: 'I need to do laundry',
+				spanish: 'Necesito lavar la ropa',
+				difficulty: 'beginner',
+			},
+			{
+				english: 'Where is the washing machine?',
+				spanish: '¿Dónde está la lavadora?',
+				difficulty: 'intermediate',
+			},
+			{
+				english: 'I have to hang the clothes out to dry',
+				spanish: 'Tengo que tender la ropa para que se seque',
+				difficulty: 'intermediate',
+			},
+			{
+				english: 'Please separate the white clothes from the colored ones',
+				spanish: 'Por favor separa la ropa blanca de la ropa de color',
+				difficulty: 'advanced',
+			},
+		],
+	},
+	{
+		category: 'In the kitchen',
+		spanishName: 'En la cocina',
+		color: '#ef4444',
+		hexcode: '1F373',
+		phrases: [
+			{
+				english: 'I am hungry',
+				spanish: 'Tengo hambre',
+				difficulty: 'beginner',
+			},
+			{
+				english: 'The food is ready',
+				spanish: 'La comida está lista',
+				difficulty: 'beginner',
+			},
+			{
+				english: 'I am going to cook dinner',
+				spanish: 'Voy a cocinar la cena',
+				difficulty: 'intermediate',
+			},
+			{
+				english: 'Can you pass me the salt, please?',
+				spanish: '¿Me puedes pasar la sal, por favor?',
+				difficulty: 'intermediate',
+			},
+			{
+				english: 'First we heat the oil and then we add the onion',
+				spanish: 'Primero calentamos el aceite y luego añadimos la cebolla',
+				difficulty: 'advanced',
+			},
+		],
+	},
+	{
+		category: 'Describing position or location',
+		spanishName: 'Describiendo la posición',
+		color: '#f59e0b',
+		hexcode: '1F4CD',
+		phrases: [
+			{
+				english: 'It is here',
+				spanish: 'Está aquí',
+				difficulty: 'beginner',
+			},
+			{
+				english: 'The book is on the table',
+				spanish: 'El libro está sobre la mesa',
+				difficulty: 'intermediate',
+			},
+			{
+				english: 'The cat is under the chair',
+				spanish: 'El gato está debajo de la silla',
+				difficulty: 'intermediate',
+			},
+			{
+				english: 'The store is next to the bank',
+				spanish: 'La tienda está al lado del banco',
+				difficulty: 'intermediate',
+			},
+			{
+				english: 'The keys are between the books and the lamp',
+				spanish: 'Las llaves están entre los libros y la lámpara',
+				difficulty: 'advanced',
+			},
+		],
+	},
+	{
+		category: 'Asking for directions',
+		spanishName: 'Pidiendo direcciones',
+		color: '#14b8a6',
+		hexcode: '1F9ED',
+		phrases: [
+			{
+				english: 'Where is the bathroom?',
+				spanish: '¿Dónde está el baño?',
+				difficulty: 'beginner',
+			},
+			{
+				english: 'Is it far from here?',
+				spanish: '¿Está lejos de aquí?',
+				difficulty: 'beginner',
+			},
+			{
+				english: 'How do I get to the station?',
+				spanish: '¿Cómo llego a la estación?',
+				difficulty: 'intermediate',
+			},
+			{
+				english: 'Turn right at the next corner',
+				spanish: 'Gira a la derecha en la próxima esquina',
+				difficulty: 'intermediate',
+			},
+			{
+				english: 'Go straight ahead and then turn left at the traffic light',
+				spanish: 'Siga todo recto y luego gire a la izquierda en el semáforo',
+				difficulty: 'advanced',
+			},
+		],
+	},
+	{
+		category: 'Describing feelings',
+		spanishName: 'Describiendo sentimientos',
+		color: '#ec4899',
+		hexcode: '1F60A',
+		phrases: [
+			{
+				english: 'I am happy',
+				spanish: 'Estoy feliz',
+				difficulty: 'beginner',
+			},
+			{
+				english: 'I am very tired',
+				spanish: 'Estoy muy cansado',
+				difficulty: 'beginner',
+			},
+			{
+				english: 'I am a little nervous today',
+				spanish: 'Estoy un poco nervioso hoy',
+				difficulty: 'intermediate',
+			},
+			{
+				english: 'I feel excited about the trip',
+				spanish: 'Me siento emocionado por el viaje',
+				difficulty: 'intermediate',
+			},
+			{
+				english: 'I am worried because I have a lot of work to do',
+				spanish: 'Estoy preocupado porque tengo mucho trabajo que hacer',
+				difficulty: 'advanced',
 			},
 		],
 	},
@@ -210,16 +413,20 @@ export async function seedDatabase() {
 		console.log('Seeding database with default data...');
 
 		// First, create all categories
-		const categoryNames = seedData.map(cat => cat.category);
-		for (const categoryName of categoryNames) {
+		for (const cat of seedData) {
 			const exists = await db.categories
 				.where('name')
-				.equals(categoryName)
+				.equals(cat.category)
 				.count();
 
 			if (!exists) {
-				await db.categories.add({ name: categoryName });
-				console.log(`Created category: ${categoryName}`);
+				await db.categories.add({
+					name: cat.category,
+					spanish: cat.spanishName,
+					color: cat.color,
+					hexcode: cat.hexcode,
+				});
+				console.log(`Created category: ${cat.category}`);
 			}
 		}
 
@@ -232,7 +439,7 @@ export async function seedDatabase() {
 					categories: [categoryData.category],
 					createdAt: Date.now(),
 					audioBlob: null,
-					difficulty: 'beginner',
+					difficulty: phrase.difficulty || 'beginner',
 					srs: { repetition: 0, interval: 0, ease: 2.5, lapses: 0 },
 					srsDue: Date.now(),
 				});
