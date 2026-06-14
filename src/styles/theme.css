@@ -359,12 +359,23 @@
 /* Mobile bottom sheet modal styling */
 #category-menu-modal {
 	transform: translateY(100%);
-	transition: transform 0.3s ease-out;
 }
 
 #category-menu-modal[open] {
 	transform: translateY(0);
 	animation: slideUp 0.3s ease-out;
+}
+
+#category-menu-modal[open]::backdrop {
+	animation: fadeInBackdrop 0.3s ease-out forwards;
+}
+
+#category-menu-modal.closing {
+	animation: slideDown 0.28s ease-in forwards;
+}
+
+#category-menu-modal.closing::backdrop {
+	animation: fadeOutBackdrop 0.28s ease-in forwards;
 }
 
 @keyframes slideUp {
@@ -376,9 +387,59 @@
 	}
 }
 
+@keyframes slideDown {
+	from {
+		transform: translateY(0);
+	}
+	to {
+		transform: translateY(100%);
+	}
+}
+
+@keyframes fadeInBackdrop {
+	from {
+		background: rgba(0, 0, 0, 0);
+	}
+	to {
+		background: rgba(0, 0, 0, 0.4);
+	}
+}
+
+@keyframes fadeOutBackdrop {
+	from {
+		background: rgba(0, 0, 0, 0.4);
+	}
+	to {
+		background: rgba(0, 0, 0, 0);
+	}
+}
+
 /* Mobile sidebar */
 #mobile-sidebar.active {
 	display: block;
+}
+
+/* Mobile add-category form slide animation */
+#mobile-add-category-form-panel {
+	max-height: 0;
+	overflow: hidden;
+	padding: 0 1rem;
+	border-bottom-width: 0;
+	transition: max-height 0.3s ease-out, padding 0.3s ease-out, border-bottom-width 0.3s ease-out;
+}
+
+#mobile-add-category-form-panel.open {
+	max-height: 600px;
+	padding: 1rem;
+	border-bottom-width: 1px;
+}
+
+#mobile-sidebar-backdrop {
+	transition: opacity 0.3s ease;
+}
+
+#mobile-sidebar:not(.active) #mobile-sidebar-backdrop {
+	opacity: 0;
 }
 
 .recording-active {

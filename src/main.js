@@ -1,4 +1,30 @@
 import './styles/index.css';
+
+function showConfirm({ title, message, okLabel = 'Delete', okClass = 'text-red-500 hover:bg-red-50' } = {}) {
+	return new Promise(resolve => {
+		const dialog = document.getElementById('confirm-dialog');
+		document.getElementById('confirm-dialog-title').textContent = title || '';
+		document.getElementById('confirm-dialog-message').textContent = message || '';
+		const okBtn = document.getElementById('confirm-dialog-ok');
+		okBtn.textContent = okLabel;
+		okBtn.className = `flex-1 py-3 text-sm font-semibold transition-colors rounded-br-2xl ${okClass}`;
+		const cancel = document.getElementById('confirm-dialog-cancel');
+		const cleanup = result => {
+			dialog.close();
+			okBtn.removeEventListener('click', onOk);
+			cancel.removeEventListener('click', onCancel);
+			dialog.removeEventListener('click', onBackdrop);
+			resolve(result);
+		};
+		const onOk = () => cleanup(true);
+		const onCancel = () => cleanup(false);
+		const onBackdrop = e => { if (e.target === dialog) cleanup(false); };
+		okBtn.addEventListener('click', onOk);
+		cancel.addEventListener('click', onCancel);
+		dialog.addEventListener('click', onBackdrop);
+		dialog.showModal();
+	});
+}
 import { db, seedDatabase } from './db.js';
 import { translateText } from './translate.js';
 import {
@@ -793,7 +819,7 @@ async function renderCategoryList(list) {
 						${spanishName ? `<div class="text-xs text-gray-600 truncate">${escHtml(cat.name)}</div>` : ''}
 					</div>
 				</div>
-				<div class="edit-buttons flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+				<div class="edit-buttons flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
 					<button type="button" class="btn-edit-category p-1.5 hover:bg-gray-100 rounded-lg transition-colors" onclick="event.stopPropagation();">
 						<svg class="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -819,7 +845,7 @@ categoryList.addEventListener('click', async e => {
 	if (e.target.closest('.btn-delete-category')) {
 		e.stopPropagation();
 		if (
-			confirm(`Delete category "${name}"? This will remove it from all cards.`)
+			await showConfirm({ title: `Delete "${name}"?`, message: 'This will remove it from all cards.' })
 		) {
 			await db.categories.where('name').equals(name).delete();
 			// Remove from all cards
@@ -934,7 +960,7 @@ cardList.addEventListener('click', async e => {
 		if (card) openModal(card);
 	}
 	if (deleteBtn) {
-		if (confirm('Delete this card?')) {
+		if (await showConfirm({ title: 'Delete this card?', message: 'This action cannot be undone.' })) {
 			await db.cards.delete(Number(deleteBtn.dataset.id));
 			await updateCategoryFilter();
 			renderCards(categoryFilter.value);
@@ -1065,9 +1091,12 @@ async function handleFileUpload(e) {
 			alert('No valid sentences found in the file.');
 			return;
 		}
-		const confirmed = confirm(
-			`Found ${lines.length} sentence${lines.length > 1 ? 's' : ''}. Create cards with blank Spanish translations?`,
-		);
+		const confirmed = await showConfirm({
+			title: `Import ${lines.length} sentence${lines.length > 1 ? 's' : ''}?`,
+			message: 'Cards will be created with blank Spanish translations.',
+			okLabel: 'Import',
+			okClass: 'text-purple-600 hover:bg-purple-50',
+		});
 		if (!confirmed) return;
 		// Create cards
 		const timestamp = Date.now();
@@ -1185,7 +1214,7 @@ async function updateCategoryList() {
 						${spanishName ? `<div class="text-xs text-gray-600 truncate">${escHtml(cat.name)}</div>` : ''}
 					</div>
 				</div>
-				<div class="edit-buttons flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+				<div class="edit-buttons flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
 					<button type="button" class="btn-edit-category p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
 						<svg class="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -1362,47 +1391,58 @@ if (btnMobileMenu) {
 		mobileSidebar.classList.add('active');
 		const sidebarContent = document.getElementById('mobile-sidebar-content');
 		if (sidebarContent) {
-			sidebarContent.classList.remove('-translate-x-full');
-			sidebarContent.classList.add('translate-x-0');
+			// Let the browser paint the element at -translate-x-full before starting the transition
+			requestAnimationFrame(() => {
+				requestAnimationFrame(() => {
+					sidebarContent.classList.remove('-translate-x-full');
+					sidebarContent.classList.add('translate-x-0');
+				});
+			});
 		}
 	});
 }
+function closeMobileSidebar() {
+	const sidebarContent = document.getElementById('mobile-sidebar-content');
+	if (sidebarContent) {
+		sidebarContent.classList.add('-translate-x-full');
+		sidebarContent.classList.remove('translate-x-0');
+		sidebarContent.addEventListener('transitionend', () => {
+			mobileSidebar.classList.remove('active');
+		}, { once: true });
+	} else {
+		mobileSidebar.classList.remove('active');
+	}
+}
+
 // Close mobile sidebar
 if (btnCloseSidebar) {
-	btnCloseSidebar.addEventListener('click', () => {
-		mobileSidebar.classList.remove('active');
-		const sidebarContent = document.getElementById('mobile-sidebar-content');
-		if (sidebarContent) {
-			sidebarContent.classList.add('-translate-x-full');
-			sidebarContent.classList.remove('translate-x-0');
-		}
-	});
+	btnCloseSidebar.addEventListener('click', closeMobileSidebar);
 }
 if (mobileSidebarBackdrop) {
-	mobileSidebarBackdrop.addEventListener('click', () => {
-		mobileSidebar.classList.remove('active');
-		const sidebarContent = document.getElementById('mobile-sidebar-content');
-		if (sidebarContent) {
-			sidebarContent.classList.add('-translate-x-full');
-			sidebarContent.classList.remove('translate-x-0');
-		}
-	});
+	mobileSidebarBackdrop.addEventListener('click', closeMobileSidebar);
 }
 // Mobile add button
 if (btnAddMobile) {
 	btnAddMobile.addEventListener('click', () => openModal());
 }
+function closeCategoryMenuModal() {
+	if (!categoryMenuModal || !categoryMenuModal.open) return;
+	categoryMenuModal.classList.add('closing');
+	categoryMenuModal.addEventListener('animationend', () => {
+		categoryMenuModal.classList.remove('closing');
+		categoryMenuModal.close();
+	}, { once: true });
+}
+
 // Close category menu
 if (btnCloseCategoryMenu) {
-	btnCloseCategoryMenu.addEventListener('click', () => {
-		categoryMenuModal.close();
-	});
+	btnCloseCategoryMenu.addEventListener('click', closeCategoryMenuModal);
 }
 // Close modal when clicking backdrop
 if (categoryMenuModal) {
 	categoryMenuModal.addEventListener('click', e => {
 		if (e.target === categoryMenuModal) {
-			categoryMenuModal.close();
+			closeCategoryMenuModal();
 		}
 	});
 }
@@ -1430,6 +1470,18 @@ async function syncMobileCategoryList() {
 						${spanishName ? `<div class="text-xs text-gray-600 truncate">${escHtml(cat.name)}</div>` : ''}
 					</div>
 				</div>
+				<div class="edit-buttons flex items-center gap-1 shrink-0">
+					<button type="button" class="btn-edit-category p-2 hover:bg-gray-100 rounded-lg transition-colors">
+						<svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+						</svg>
+					</button>
+					<button type="button" class="btn-delete-category p-2 hover:bg-red-50 rounded-lg transition-colors">
+						<svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+						</svg>
+					</button>
+				</div>
 			</div>
 		</li>
 	`;
@@ -1437,8 +1489,34 @@ async function syncMobileCategoryList() {
 		.join('');
 	// Add click handlers
 	categoryListMobile.querySelectorAll('li[data-name]').forEach(li => {
-		li.addEventListener('click', async () => {
+		li.addEventListener('click', async e => {
 			const name = li.dataset.name;
+			if (e.target.closest('.btn-edit-category')) {
+				e.stopPropagation();
+				await window.openEditCategoryModal(name);
+				return;
+			}
+			if (e.target.closest('.btn-delete-category')) {
+				e.stopPropagation();
+				if (
+					await showConfirm({ title: `Delete "${name}"?`, message: 'This will remove it from all cards.' })
+				) {
+					await db.categories.where('name').equals(name).delete();
+					const cards = await db.cards.where('categories').equals(name).toArray();
+					for (const card of cards) {
+						card.categories = card.categories.filter(c => c !== name);
+						await db.cards.put(card);
+					}
+					selectedCategory = '';
+					await syncMobileCategoryList();
+					await updateCategoryList();
+					await updateCategoryFilter();
+					await updateCategorySelect();
+					await updateCategoryHeader();
+					renderCards(categoryFilter.value);
+				}
+				return;
+			}
 			selectedCategory = name;
 			await renderCards(name);
 			await syncMobileCategoryList();
@@ -1477,16 +1555,16 @@ function openMobileAddForm() {
 	mobileCategoryColor.value = '#3b82f6';
 	if (mobileColorSwatch) mobileColorSwatch.style.backgroundColor = '#3b82f6';
 	mobileEmojiPreview.innerHTML = '📝';
-	mobileAddFormPanel.classList.remove('hidden');
+	mobileAddFormPanel.classList.add('open');
 	mobileCategoryEn.focus();
 }
 function closeMobileAddForm() {
 	if (!mobileAddFormPanel) return;
-	mobileAddFormPanel.classList.add('hidden');
+	mobileAddFormPanel.classList.remove('open');
 }
 if (btnAddCategoryMobile) {
 	btnAddCategoryMobile.addEventListener('click', () => {
-		if (mobileAddFormPanel && !mobileAddFormPanel.classList.contains('hidden')) {
+		if (mobileAddFormPanel && mobileAddFormPanel.classList.contains('open')) {
 			closeMobileAddForm();
 		} else {
 			openMobileAddForm();
