@@ -40,6 +40,29 @@
 	--color-input-border: #d1d5db;
 	--color-input-error: #dc2626;
 	--radius-app: 12px;
+
+	/* Rainbow palette */
+	--rainbow-red: #f43f5e;
+	--rainbow-orange: #fb923c;
+	--rainbow-yellow: #facc15;
+	--rainbow-green: #34d399;
+	--rainbow-blue: #38bdf8;
+	--rainbow-violet: #a78bfa;
+	--rainbow-pink: #f472b6;
+	--rainbow-gradient: linear-gradient(
+		90deg,
+		var(--rainbow-red),
+		var(--rainbow-orange),
+		var(--rainbow-yellow),
+		var(--rainbow-green),
+		var(--rainbow-blue),
+		var(--rainbow-violet)
+	);
+	--brand-gradient: linear-gradient(
+		135deg,
+		var(--rainbow-violet),
+		var(--rainbow-blue)
+	);
 }
 
 .dark {
@@ -125,13 +148,6 @@
 		position: relative;
 	}
 
-	body::before {
-		content: '';
-		position: fixed;
-		inset: 0;
-		background: linear-gradient(to bottom right, #f8fafc, #dbeafe, #e0e7ff);
-		z-index: -1;
-	}
 
 	html {
 		font-size: var(--font-size);
@@ -180,11 +196,52 @@
 	}
 
 	.filter-btn.active {
-		@apply bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md;
+		@apply bg-violet-600 text-white shadow-md;
 	}
 
 	.filter-btn:not(.active) {
 		@apply text-gray-600 hover:text-gray-900 hover:bg-gray-50;
+	}
+
+	/* Rainbow helpers */
+	.rainbow-bar {
+		background: #6d28d9;
+	}
+
+	.rainbow-text {
+		color: #1f2937;
+	}
+
+	.btn-rainbow {
+		background: #6d28d9;
+		transition: box-shadow 0.2s ease, transform 0.15s ease;
+	}
+
+	.btn-rainbow:hover {
+		background: #5b21b6;
+		box-shadow: 0 4px 16px rgba(109, 40, 217, 0.35);
+		transform: translateY(-1px);
+	}
+
+	.brand-gradient {
+		background: #6d28d9;
+	}
+
+	/* Difficulty badges */
+	.difficulty-badge {
+		@apply inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold;
+	}
+
+	.difficulty-beginner {
+		@apply bg-emerald-50 text-emerald-700 border border-emerald-200;
+	}
+
+	.difficulty-intermediate {
+		@apply bg-amber-50 text-amber-700 border border-amber-200;
+	}
+
+	.difficulty-advanced {
+		@apply bg-rose-50 text-rose-700 border border-rose-200;
 	}
 }
 

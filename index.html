@@ -68,14 +68,14 @@
       <div class="desktop-header max-w-[1800px] mx-auto flex items-center justify-between">
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-3">
-            <div class="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+            <div class="p-2 bg-violet-600 rounded-xl shadow-lg">
               <svg class="w-7 h-7 text-white" width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"></path>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path>
               </svg>
             </div>
             <div>
-              <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              <h1 class="text-2xl font-bold rainbow-text">
                 Learn Spanish
               </h1>
               <p class="text-sm text-gray-600">Master everyday conversations</p>
@@ -91,7 +91,7 @@
             </svg>
             Import List
           </button>
-          <button id="btn-add" class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl transition-all shadow-md hover:shadow-lg">
+          <button id="btn-add" class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 rounded-xl transition-all shadow-md hover:shadow-lg">
             <svg class="w-4 h-4" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
@@ -108,15 +108,15 @@
           </svg>
         </button>
         <div class="flex items-center gap-2">
-          <div class="p-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-md">
+          <div class="p-2.5 bg-violet-600 rounded-xl shadow-md">
             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"></path>
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path>
             </svg>
           </div>
-          <h1 class="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Learn Spanish</h1>
+          <h1 class="text-lg font-bold rainbow-text">Learn Spanish</h1>
         </div>
-        <button id="btn-add-mobile" class="p-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-md">
+        <button id="btn-add-mobile" class="p-2.5 bg-violet-600 rounded-xl shadow-md">
           <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
           </svg>
@@ -166,6 +166,7 @@
           </div>
         </div>
 
+
         <!-- Desktop Category Header and Filters -->
         <div class="desktop-controls mb-6 flex items-center justify-between">
           <div id="category-header">
@@ -175,7 +176,7 @@
           <div class="flex items-center gap-2 bg-white rounded-xl border border-gray-200 p-1 shadow-sm">
             <button
               id="filter-all"
-              class="filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-all bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md cursor-pointer"
+              class="filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-all bg-violet-600 text-white shadow-md cursor-pointer"
             >
               All cards
             </button>
@@ -192,7 +193,7 @@
         <div class="mobile-filters hidden mb-4 flex items-center gap-2 bg-white rounded-xl border border-gray-200 p-1 shadow-sm">
           <button
             id="filter-all-mobile"
-            class="filter-btn flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-all bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md cursor-pointer"
+            class="filter-btn flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-all bg-violet-600 text-white shadow-md cursor-pointer"
           >
             All cards
           </button>
@@ -214,7 +215,7 @@
         <option value="">All cards</option>
       </select>
 
-        <dialog id="modal" class="border-0 rounded-app p-8 w-[min(440px,92vw)] shadow-[0_8px_32px_rgba(0,0,0,.18)] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 m-0 backdrop:bg-black/40">
+        <dialog id="modal" class="border-0 rounded-app p-8 w-[min(520px,92vw)] shadow-[0_8px_32px_rgba(0,0,0,.18)] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 m-0 backdrop:bg-black/40">
           <form id="card-form" method="dialog">
             <h2 id="modal-title" class="mb-5 text-xl font-semibold">New Card</h2>
             
@@ -236,6 +237,15 @@
               </div>
             </label>
             
+            <div class="flex flex-col gap-1.5 text-[0.85rem] font-semibold text-app-text-muted mb-4">
+              <label>Difficulty</label>
+              <div id="difficulty-options" class="flex gap-2">
+                <button type="button" data-difficulty="beginner" class="difficulty-option flex-1 px-3 py-2 rounded-xl text-sm font-medium border-2 border-gray-200 text-gray-600 hover:border-emerald-300 transition-colors cursor-pointer">🌱 Beginner</button>
+                <button type="button" data-difficulty="intermediate" class="difficulty-option flex-1 px-3 py-2 rounded-xl text-sm font-medium border-2 border-gray-200 text-gray-600 hover:border-amber-300 transition-colors cursor-pointer">🌿 Intermediate</button>
+                <button type="button" data-difficulty="advanced" class="difficulty-option flex-1 px-3 py-2 rounded-xl text-sm font-medium border-2 border-gray-200 text-gray-600 hover:border-rose-300 transition-colors cursor-pointer">🌳 Advanced</button>
+              </div>
+            </div>
+
             <div class="flex flex-col gap-1.5 text-[0.85rem] font-semibold text-app-text-muted mb-4">
               <label>Categories</label>
               <div class="relative">
@@ -278,7 +288,7 @@
               <button type="button" id="btn-cancel" class="px-4 py-2 border border-gray-300 bg-white rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors cursor-pointer">
                 Cancel
               </button>
-              <button type="submit" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg cursor-pointer">
+              <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-all shadow-md hover:shadow-lg cursor-pointer">
                 Save
               </button>
             </div>
@@ -329,7 +339,7 @@
               autocomplete="off"
             />
           </div>
-          <button id="btn-add-category-mobile" type="button" class="w-full mt-3 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl transition-all shadow-md hover:shadow-lg">
+          <button id="btn-add-category-mobile" type="button" class="w-full mt-3 px-4 py-2.5 text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 rounded-xl transition-all shadow-md hover:shadow-lg">
             + Add Category
           </button>
         </div>
@@ -368,7 +378,7 @@
             </div>
             <div class="flex gap-2">
               <button type="button" id="mobile-category-cancel" class="flex-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all">Cancel</button>
-              <button type="submit" class="flex-1 px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-lg transition-all shadow-sm">Add</button>
+              <button type="submit" class="flex-1 px-3 py-2 text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 rounded-lg transition-all shadow-sm">Add</button>
             </div>
           </form>
         </div>

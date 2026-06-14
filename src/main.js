@@ -7,14 +7,16 @@ import {
 	getEmojiUrl,
 	clearEmojiCache,
 } from './emojiService.js';
-
+import {
+	openPracticeModal,
+	isSpeechRecognitionSupported,
+} from './pronunciation.js';
 const cardList = document.getElementById('card-list');
 const modal = document.getElementById('modal');
 const cardForm = document.getElementById('card-form');
 const modalTitle = document.getElementById('modal-title');
 const inputEn = document.getElementById('input-english');
 const inputEs = document.getElementById('input-spanish');
-
 const categoryDropdownBtn = document.getElementById('category-dropdown-btn');
 const categoryDropdownLabel = document.getElementById(
 	'category-dropdown-label',
@@ -32,7 +34,6 @@ const categoryList = document.getElementById('category-list');
 const categoryHeader = document.getElementById('category-header');
 const filterAllBtn = document.getElementById('filter-all');
 const filterAudioBtn = document.getElementById('filter-audio');
-
 const btnAdd = document.getElementById('btn-add');
 const btnImport = document.getElementById('btn-import');
 const fileInput = document.getElementById('file-input');
@@ -42,9 +43,9 @@ const btnStopRecord = document.getElementById('btn-stop-record');
 const btnPlayPreview = document.getElementById('btn-play-preview');
 const btnDeleteAudio = document.getElementById('btn-delete-audio');
 const recordingStatus = document.getElementById('recording-status');
-
 let editingId = null;
 let currentCategories = [];
+let currentDifficulty = 'beginner';
 let currentAudioBlob = null;
 let mediaRecorder = null;
 let recordingChunks = [];
@@ -53,9 +54,7 @@ let recordingTimer = null;
 let previewAudio = null;
 let recordingMimeType = '';
 let currentFilter = 'all'; // 'all' or 'audio'
-
 const MAX_RECORDING_DURATION = 30000; // 30 seconds
-
 async function renderCards(filterCategory = '') {
 	let cards;
 	if (filterCategory) {
@@ -66,26 +65,22 @@ async function renderCards(filterCategory = '') {
 	} else {
 		cards = await db.cards.orderBy('createdAt').toArray();
 	}
-
 	// Apply audio filter
 	if (currentFilter === 'audio') {
 		cards = cards.filter(card => card.audioBlob);
 	}
-
 	if (cards.length === 0) {
 		cardList.innerHTML = filterCategory
 			? '<div class="text-center py-16 px-4 text-app-text-muted"><p>No cards found with this category.</p></div>'
 			: '<div class="text-center py-16 px-4 text-app-text-muted"><p>No cards yet. Add your first one!</p></div>';
 		return;
 	}
-
 	// Fetch all categories to get their colors
 	const allCategories = await db.categories.toArray();
 	const categoryColorMap = {};
 	allCategories.forEach(cat => {
 		categoryColorMap[cat.name] = cat.color || '#3b82f6';
 	});
-
 	cardList.innerHTML = cards
 		.map(card => {
 			// Get color from first category, fallback to default blue
@@ -93,11 +88,9 @@ async function renderCards(filterCategory = '') {
 				card.categories && card.categories.length > 0
 					? categoryColorMap[card.categories[0]] || '#3b82f6'
 					: '#3b82f6';
-
 			return `
 		<article class="phrase-card group relative" data-id="${card.id}">
 			<div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b opacity-60" style="background: linear-gradient(to bottom, ${cardColor}, ${cardColor}dd);"></div>
-			
 			<div class="p-6 pl-8">
 				<div class="flex items-start gap-4">
 					<div class="flex-1 min-w-0 space-y-5">
@@ -112,28 +105,34 @@ async function renderCards(filterCategory = '') {
 								}
 							</div>
 						</div>
-						
-						${
-							card.audioBlob
-								? `<div class="flex items-center gap-2">
-									<div class="px-2 py-1 bg-green-50 border border-green-200 rounded-lg flex items-center gap-1.5">
+						<div class="flex items-center gap-2 flex-wrap">
+							${
+								{
+									beginner:
+										'<span class="difficulty-badge difficulty-beginner">🌱 Beginner</span>',
+									intermediate:
+										'<span class="difficulty-badge difficulty-intermediate">🌿 Intermediate</span>',
+									advanced:
+										'<span class="difficulty-badge difficulty-advanced">🌳 Advanced</span>',
+								}[card.difficulty || 'beginner']
+							}
+							${
+								card.audioBlob
+									? `<div class="px-2 py-1 bg-green-50 border border-green-200 rounded-lg flex items-center gap-1.5">
 										<svg class="w-3.5 h-3.5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
 											<path d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z"/>
 										</svg>
 										<span class="text-xs font-medium text-green-700">Audio recorded</span>
-									</div>
-								</div>`
-								: `<div class="flex items-center gap-2">
-									<div class="px-2 py-1 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-1.5">
+									</div>`
+									: `<div class="px-2 py-1 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-1.5">
 										<svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd"></path>
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path>
 										</svg>
 										<span class="text-xs font-medium text-amber-700">No audio</span>
-									</div>
-								</div>`
-						}
-						
+									</div>`
+							}
+						</div>
 						${
 							card.categories && card.categories.length > 0
 								? `<div class="flex gap-1.5 flex-wrap">
@@ -142,7 +141,6 @@ async function renderCards(filterCategory = '') {
 								: ''
 						}
 					</div>
-					
 					<div class="action-buttons flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
 						${
 							card.audioBlob
@@ -151,6 +149,16 @@ async function renderCards(filterCategory = '') {
 										<path d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z"/>
 									</svg>
 								</button>`
+								: ''
+						}
+						${
+							card.spanish && isSpeechRecognitionSupported()
+								? `<button class="btn-practice p-3 text-white rounded-xl hover:shadow-md transition-all cursor-pointer border-0" style="background: linear-gradient(to right, ${cardColor}, ${cardColor}dd);" data-id="${card.id}" aria-label="Practice pronunciation" title="Practice pronunciation">
+										<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+											<path d="M12 14a3 3 0 003-3V6a3 3 0 00-6 0v5a3 3 0 003 3z"/>
+											<path d="M19 11a1 1 0 10-2 0 5 5 0 01-10 0 1 1 0 10-2 0 7 7 0 006 6.93V21a1 1 0 102 0v-3.07A7 7 0 0019 11z"/>
+										</svg>
+									</button>`
 								: ''
 						}
 						<button class="btn-edit p-3 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-xl transition-all cursor-pointer border-0" data-id="${card.id}" aria-label="Edit">
@@ -166,14 +174,12 @@ async function renderCards(filterCategory = '') {
 					</div>
 				</div>
 			</div>
-			
 			<div class="absolute bottom-0 right-0 w-32 h-32 opacity-[0.03] rounded-tl-full" style="background: linear-gradient(to top left, ${cardColor}, ${cardColor}dd);"></div>
 		</article>
 	`;
 		})
 		.join('');
 }
-
 async function updateCategoryFilter() {
 	const allCategories = await db.categories.orderBy('name').toArray();
 	const currentValue = categoryFilter.value;
@@ -187,7 +193,6 @@ async function updateCategoryFilter() {
 			.join('');
 	categoryFilter.value = currentValue;
 }
-
 async function updateCategorySelect() {
 	const allCategories = await db.categories.orderBy('name').toArray();
 	if (allCategories.length === 0) {
@@ -208,7 +213,6 @@ async function updateCategorySelect() {
 	}
 	updateDropdownLabel();
 }
-
 function renderCategoryChips() {
 	categoryChips.innerHTML = currentCategories
 		.map(
@@ -221,9 +225,7 @@ function renderCategoryChips() {
 		)
 		.join('');
 }
-
 // renderTagChips function removed - tags have been migrated to categories
-
 function toggleCategory(categoryName) {
 	const index = currentCategories.indexOf(categoryName);
 	if (index === -1) {
@@ -241,7 +243,6 @@ function toggleCategory(categoryName) {
 		checkbox.checked = currentCategories.includes(categoryName);
 	}
 }
-
 function removeCategory(cat) {
 	currentCategories = currentCategories.filter(c => c !== cat);
 	renderCategoryChips();
@@ -254,7 +255,6 @@ function removeCategory(cat) {
 		checkbox.checked = false;
 	}
 }
-
 function updateDropdownLabel() {
 	if (currentCategories.length === 0) {
 		categoryDropdownLabel.textContent = 'Select categories';
@@ -270,7 +270,29 @@ function updateDropdownLabel() {
 		categoryDropdownLabel.classList.add('text-app-text');
 	}
 }
-
+const difficultyActiveClasses = {
+	beginner: ['border-emerald-400', 'bg-emerald-50', 'text-emerald-700'],
+	intermediate: ['border-amber-400', 'bg-amber-50', 'text-amber-700'],
+	advanced: ['border-rose-400', 'bg-rose-50', 'text-rose-700'],
+};
+function setDifficulty(level) {
+	currentDifficulty = level;
+	document.querySelectorAll('.difficulty-option').forEach(btn => {
+		const active = btn.dataset.difficulty === level;
+		Object.values(difficultyActiveClasses)
+			.flat()
+			.forEach(cls => btn.classList.remove(cls));
+		btn.classList.toggle('border-gray-200', !active);
+		btn.classList.toggle('text-gray-600', !active);
+		if (active) {
+			btn.classList.add(...difficultyActiveClasses[level]);
+		}
+	});
+}
+document.getElementById('difficulty-options')?.addEventListener('click', e => {
+	const btn = e.target.closest('.difficulty-option');
+	if (btn) setDifficulty(btn.dataset.difficulty);
+});
 function toggleDropdown() {
 	const isHidden = categoryDropdownMenu.classList.contains('hidden');
 	if (isHidden) {
@@ -281,12 +303,10 @@ function toggleDropdown() {
 		categoryDropdownIcon.style.transform = 'rotate(0deg)';
 	}
 }
-
 function closeDropdown() {
 	categoryDropdownMenu.classList.add('hidden');
 	categoryDropdownIcon.style.transform = 'rotate(0deg)';
 }
-
 async function startRecording() {
 	try {
 		const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -299,17 +319,14 @@ async function startRecording() {
 		const selectedMimeType = mimeTypeCandidates.find(type =>
 			MediaRecorder.isTypeSupported(type),
 		);
-
 		mediaRecorder = selectedMimeType
 			? new MediaRecorder(stream, { mimeType: selectedMimeType })
 			: new MediaRecorder(stream);
 		recordingMimeType = mediaRecorder.mimeType || selectedMimeType || '';
 		recordingChunks = [];
-
 		mediaRecorder.ondataavailable = e => {
 			if (e.data.size > 0) recordingChunks.push(e.data);
 		};
-
 		mediaRecorder.onstop = () => {
 			stream.getTracks().forEach(track => track.stop());
 			const fallbackChunkType = recordingChunks.find(chunk => chunk.type)?.type;
@@ -317,11 +334,9 @@ async function startRecording() {
 			currentAudioBlob = new Blob(recordingChunks, { type: blobType });
 			updateAudioUI('recorded');
 		};
-
 		mediaRecorder.start();
 		recordingStartTime = Date.now();
 		updateAudioUI('recording');
-
 		// Update timer and enforce 30s limit
 		recordingTimer = setInterval(() => {
 			const elapsed = Date.now() - recordingStartTime;
@@ -330,7 +345,6 @@ async function startRecording() {
 				Math.ceil((MAX_RECORDING_DURATION - elapsed) / 1000),
 			);
 			recordingStatus.textContent = `Recording... ${remaining}s`;
-
 			if (elapsed >= MAX_RECORDING_DURATION) {
 				stopRecording();
 			}
@@ -342,7 +356,6 @@ async function startRecording() {
 		console.error('Recording error:', err);
 	}
 }
-
 function stopRecording() {
 	if (mediaRecorder && mediaRecorder.state !== 'inactive') {
 		mediaRecorder.stop();
@@ -352,7 +365,6 @@ function stopRecording() {
 		recordingTimer = null;
 	}
 }
-
 function playPreview() {
 	if (!currentAudioBlob) return;
 	if (previewAudio) {
@@ -375,7 +387,6 @@ function playPreview() {
 		);
 	});
 }
-
 function deleteAudio() {
 	currentAudioBlob = null;
 	if (previewAudio) {
@@ -384,13 +395,11 @@ function deleteAudio() {
 	}
 	updateAudioUI('none');
 }
-
 function updateAudioUI(state) {
 	btnRecord.style.display = state === 'none' ? '' : 'none';
 	btnStopRecord.style.display = state === 'recording' ? '' : 'none';
 	btnPlayPreview.style.display = state === 'recorded' ? '' : 'none';
 	btnDeleteAudio.style.display = state === 'recorded' ? '' : 'none';
-
 	if (state === 'none') {
 		recordingStatus.textContent = '';
 		recordingStatus.className = 'text-[0.85rem] text-app-text-muted italic';
@@ -402,11 +411,9 @@ function updateAudioUI(state) {
 		recordingStatus.className = 'text-[0.85rem] text-app-text-muted italic';
 	}
 }
-
 async function playCardAudio(cardId) {
 	const card = await db.cards.get(cardId);
 	if (!card || !card.audioBlob) return;
-
 	const url = URL.createObjectURL(card.audioBlob);
 	const audio = new Audio(url);
 	audio.onended = () => URL.revokeObjectURL(url);
@@ -419,7 +426,6 @@ async function playCardAudio(cardId) {
 		alert('Unable to play this recording in your browser.');
 	});
 }
-
 async function openModal(card = null) {
 	editingId = card ? card.id : null;
 	modalTitle.textContent = card ? 'Edit Card' : 'New Card';
@@ -427,12 +433,11 @@ async function openModal(card = null) {
 	inputEs.value = card ? card.spanish : '';
 	currentCategories = card && card.categories ? [...card.categories] : [];
 	currentAudioBlob = card && card.audioBlob ? card.audioBlob : null;
-
+	setDifficulty(card?.difficulty || 'beginner');
 	await updateCategorySelect();
 	renderCategoryChips();
 	closeDropdown();
 	updateAudioUI(currentAudioBlob ? 'recorded' : 'none');
-
 	// Clear any error states
 	document.querySelectorAll('.input-wrapper.error').forEach(wrapper => {
 		wrapper.classList.remove('error');
@@ -442,7 +447,6 @@ async function openModal(card = null) {
 			supportingText.classList.remove('text-input-error');
 		}
 	});
-
 	// Update clear buttons
 	document.querySelectorAll('.input-clear-btn').forEach(btn => {
 		const inputId = btn.dataset.clear;
@@ -455,21 +459,17 @@ async function openModal(card = null) {
 			btn.classList.remove('flex');
 		}
 	});
-
 	modal.showModal();
 	inputEn.focus();
 }
-
 function closeModal() {
 	stopRecording();
 	if (previewAudio) {
 		previewAudio.pause();
 		previewAudio = null;
 	}
-
 	// Close dropdown if open
 	closeDropdown();
-
 	// Clear error states
 	document.querySelectorAll('.input-wrapper.error').forEach(wrapper => {
 		wrapper.classList.remove('error');
@@ -480,40 +480,38 @@ function closeModal() {
 			delete supportingText.dataset.originalText;
 		}
 	});
-
 	modal.close();
 	cardForm.reset();
 	editingId = null;
 	currentCategories = [];
 	currentAudioBlob = null;
 }
-
 // Event Listeners
 btnAdd.addEventListener('click', () => openModal());
 btnImport.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', handleFileUpload);
 btnCancel.addEventListener('click', closeModal);
-
 // Close modal only when clicking on the backdrop (not on form content)
 modal.addEventListener('click', e => {
 	if (e.target === modal) {
-		closeModal();
+		if (!categoryDropdownMenu.classList.contains('hidden')) {
+			closeDropdown();
+		} else {
+			closeModal();
+		}
 	}
 });
-
 // Category dropdown toggle
 categoryDropdownBtn.addEventListener('click', e => {
 	e.stopPropagation();
 	toggleDropdown();
 });
-
 // Category dropdown checkbox changes
 categoryDropdownItems.addEventListener('change', e => {
 	if (e.target.type === 'checkbox') {
 		toggleCategory(e.target.value);
 	}
 });
-
 // Close dropdown when clicking outside
 document.addEventListener('click', e => {
 	if (
@@ -523,16 +521,13 @@ document.addEventListener('click', e => {
 		closeDropdown();
 	}
 });
-
 // Prevent dropdown from closing when clicking inside the menu
 categoryDropdownMenu.addEventListener('click', e => {
 	e.stopPropagation();
 });
-
 categoryChips.addEventListener('click', e => {
 	if (e.target.dataset.category) removeCategory(e.target.dataset.category);
 });
-
 // --- Inject category modal HTML on load ---
 fetch(import.meta.env.BASE_URL + 'category-modal.html')
 	.then(r => r.text())
@@ -540,7 +535,6 @@ fetch(import.meta.env.BASE_URL + 'category-modal.html')
 		document.getElementById('category-modal-container').innerHTML = html;
 		setupCategoryModal();
 	});
-
 // --- Category filter logic ---
 inputCategory.addEventListener('input', async () => {
 	const filter = inputCategory.value.trim().toLowerCase();
@@ -554,7 +548,6 @@ inputCategory.addEventListener('input', async () => {
 		: allCategories;
 	renderCategoryList(filtered);
 });
-
 // --- Modal open/close logic ---
 const btnAddCategory = document.getElementById('btn-add-category');
 function setupCategoryModal() {
@@ -569,17 +562,14 @@ function setupCategoryModal() {
 	const cancelBtn = document.getElementById('category-modal-cancel');
 	const modalTitle = modal.querySelector('h2');
 	const submitBtn = modal.querySelector('button[type="submit"]');
-
 	// Emoji search modal elements
 	const emojiSearchModal = document.getElementById('emoji-search-modal');
 	const emojiSearchInput = document.getElementById('emoji-search-input');
 	const emojiSearchResults = document.getElementById('emoji-search-results');
 	const emojiSearchClose = document.getElementById('emoji-search-close');
 	const emojiSearchStatus = document.getElementById('emoji-search-status');
-
 	// Track edit mode
 	let editingCategory = null; // Stores { id, oldName } when editing
-
 	// Function to open modal for adding
 	window.openAddCategoryModal = () => {
 		editingCategory = null;
@@ -594,7 +584,6 @@ function setupCategoryModal() {
 		emojiPreview.innerHTML = '📝';
 		inputEn.focus();
 	};
-
 	// Function to open modal for editing
 	window.openEditCategoryModal = async categoryName => {
 		const category = await db.categories
@@ -602,7 +591,6 @@ function setupCategoryModal() {
 			.equals(categoryName)
 			.first();
 		if (!category) return;
-
 		editingCategory = { id: category.id, oldName: category.name };
 		modalTitle.textContent = 'Edit Category';
 		submitBtn.textContent = 'Save Changes';
@@ -612,7 +600,6 @@ function setupCategoryModal() {
 		hexcodeInput.value = category.hexcode || '';
 		colorInput.value = category.color || '#3b82f6';
 		if (colorSwatch) colorSwatch.style.backgroundColor = colorInput.value;
-
 		if (category.hexcode) {
 			emojiPreview.innerHTML = `<img src="${getEmojiUrl(category.hexcode)}" alt="${category.name}" class="w-full h-full object-contain p-1" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" /><span class="text-3xl hidden">📝</span>`;
 		} else {
@@ -620,29 +607,24 @@ function setupCategoryModal() {
 		}
 		inputEn.focus();
 	};
-
 	// Update colour swatch in real time
 	const colorSwatch = document.getElementById('color-swatch');
 	colorInput.addEventListener('input', () => {
 		if (colorSwatch) colorSwatch.style.backgroundColor = colorInput.value;
 	});
-
 	// Open category modal for adding
 	btnAddCategory.addEventListener('click', () => {
 		window.openAddCategoryModal();
 	});
-
 	// Cancel/close
 	cancelBtn.addEventListener('click', () => {
 		modal.close();
 	});
-
 	modal.addEventListener('click', e => {
 		if (e.target === modal) {
 			modal.close();
 		}
 	});
-
 	// Open emoji search
 	emojiSearchBtn.addEventListener('click', async () => {
 		emojiSearchModal.showModal();
@@ -650,20 +632,17 @@ function setupCategoryModal() {
 		emojiSearchInput.focus();
 		await renderEmojiResults('');
 	});
-
 	// Close emoji search
 	emojiSearchClose.addEventListener('click', () => {
 		window._mobileEmojiTarget = null;
 		emojiSearchModal.close();
 	});
-
 	emojiSearchModal.addEventListener('click', e => {
 		if (e.target === emojiSearchModal) {
 			window._mobileEmojiTarget = null;
 			emojiSearchModal.close();
 		}
 	});
-
 	// Emoji search input
 	let searchTimeout;
 	emojiSearchInput.addEventListener('input', e => {
@@ -672,28 +651,22 @@ function setupCategoryModal() {
 			await renderEmojiResults(e.target.value);
 		}, 300);
 	});
-
 	// Render emoji search results
 	async function renderEmojiResults(query) {
 		emojiSearchResults.innerHTML =
 			'<div class="col-span-8 text-center text-gray-500 py-4">Searching...</div>';
-
 		const results = await searchEmojis(query, 100);
-
 		console.log('Emoji search results:', results.length, 'emojis');
 		if (results.length > 0) {
 			console.log('First result:', results[0]);
 		}
-
 		if (results.length === 0) {
 			emojiSearchResults.innerHTML =
 				'<div class="col-span-5 text-center text-gray-500 py-8">No icons found. Try a different search term.</div>';
 			emojiSearchStatus.textContent = '';
 			return;
 		}
-
 		emojiSearchStatus.textContent = `${results.length} icons found`;
-
 		emojiSearchResults.innerHTML = results
 			.map(
 				emoji => `
@@ -718,14 +691,12 @@ function setupCategoryModal() {
 		`,
 			)
 			.join('');
-
 		// Add click handlers for emoji selection
 		document.querySelectorAll('.emoji-result-btn').forEach(btn => {
 			btn.addEventListener('click', () => {
 				const hexcode = btn.dataset.hexcode;
 				const name = btn.dataset.name;
 				const imgHtml = `<img src="${getEmojiUrl(hexcode)}" alt="${name}" class="w-full h-full object-contain p-1" onerror="this.style.display='none';" />`;
-
 				if (window._mobileEmojiTarget) {
 					window._mobileEmojiTarget.hexcodeInput.value = hexcode;
 					window._mobileEmojiTarget.preview.innerHTML = imgHtml;
@@ -734,12 +705,10 @@ function setupCategoryModal() {
 					hexcodeInput.value = hexcode;
 					emojiPreview.innerHTML = imgHtml;
 				}
-
 				emojiSearchModal.close();
 			});
 		});
 	}
-
 	// Add category submit
 	form.addEventListener('submit', async e => {
 		e.preventDefault();
@@ -747,13 +716,10 @@ function setupCategoryModal() {
 		const spanish = inputEs.value.trim();
 		const hexcode = hexcodeInput.value.trim();
 		const color = colorInput.value.trim();
-
 		if (!name || !spanish) return;
-
 		if (editingCategory) {
 			// Update existing category
 			const oldName = editingCategory.oldName;
-
 			// Update category in database
 			await db.categories
 				.where('name')
@@ -764,7 +730,6 @@ function setupCategoryModal() {
 					hexcode: hexcode || '',
 					color: color || '#3b82f6',
 				});
-
 			// If name changed, update all cards that reference this category
 			if (name !== oldName) {
 				const cards = await db.cards
@@ -777,13 +742,11 @@ function setupCategoryModal() {
 					);
 					await db.cards.put(card);
 				}
-
 				// Update selected category if it was the one being edited
 				if (selectedCategory === oldName) {
 					selectedCategory = name;
 				}
 			}
-
 			await updateCategoryList();
 			await updateCategoryFilter();
 			await updateCategorySelect();
@@ -807,11 +770,9 @@ function setupCategoryModal() {
 		modal.close();
 	});
 }
-
 // Render filtered category list
 async function renderCategoryList(list) {
 	const categoryList = document.getElementById('category-list');
-
 	categoryList.innerHTML = list
 		.map(cat => {
 			const hexcode = cat.hexcode || '';
@@ -824,7 +785,7 @@ async function renderCategoryList(list) {
 			return `
 		<li class="group relative overflow-hidden rounded-xl transition-all mb-1 ${isSelected ? 'shadow-md scale-[1.02]' : 'hover:shadow-sm hover:scale-[1.01]'}" data-name="${escAttr(cat.name)}">
 			<div class="absolute inset-0 transition-opacity ${isSelected ? 'opacity-90' : 'opacity-0 group-hover:opacity-75'}" style="background: linear-gradient(to bottom right, ${color}, ${color}dd);"></div>
-			<div class="relative px-4 py-3.5 flex items-center justify-between border-2 rounded-xl transition-all border-transparent ${isSelected ? '' : 'bg-white hover:border-gray-200'}">
+			<div class="relative px-4 py-3.5 flex items-center justify-between border-2 rounded-xl transition-all border-transparent min-h-[72px] ${isSelected ? '' : 'bg-white hover:border-gray-200'}">
 				<div class="flex items-center gap-3 flex-1 min-w-0">
 					<div class="shrink-0 w-8 h-8">${emojiDisplay}</div>
 					<div class="text-left min-w-0 flex-1">
@@ -850,12 +811,10 @@ async function renderCategoryList(list) {
 		})
 		.join('');
 }
-
 categoryList.addEventListener('click', async e => {
 	const li = e.target.closest('li[data-name]');
 	if (!li) return;
 	const name = li.dataset.name;
-
 	// Check if clicking edit or delete buttons
 	if (e.target.closest('.btn-delete-category')) {
 		e.stopPropagation();
@@ -896,21 +855,17 @@ categoryList.addEventListener('click', async e => {
 		renderCards(categoryFilter.value);
 	}
 });
-
 btnRecord.addEventListener('click', startRecording);
 btnStopRecord.addEventListener('click', stopRecording);
 btnPlayPreview.addEventListener('click', playPreview);
 btnDeleteAudio.addEventListener('click', deleteAudio);
-
 categoryFilter.addEventListener('change', () => {
 	renderCards(categoryFilter.value);
 });
-
 cardForm.addEventListener('submit', async e => {
 	e.preventDefault();
 	const english = inputEn.value.trim();
 	const spanish = inputEs.value.trim();
-
 	// Clear errors
 	document.querySelectorAll('.input-wrapper.error').forEach(wrapper => {
 		wrapper.classList.remove('error');
@@ -920,7 +875,6 @@ cardForm.addEventListener('submit', async e => {
 			supportingText.classList.remove('text-input-error');
 		}
 	});
-
 	// Validate
 	let hasError = false;
 	if (!english) {
@@ -935,34 +889,33 @@ cardForm.addEventListener('submit', async e => {
 		hasError = true;
 	}
 	// Spanish is optional - allow blank for imported cards
-
 	if (hasError) return;
-
 	const cardData = {
 		english,
 		spanish,
 		categories: [...currentCategories],
 		audioBlob: currentAudioBlob,
+		difficulty: currentDifficulty,
 	};
-
 	if (editingId) {
 		await db.cards.update(editingId, cardData);
 	} else {
 		cardData.createdAt = Date.now();
+		cardData.srs = { repetition: 0, interval: 0, ease: 2.5, lapses: 0 };
+		cardData.srsDue = Date.now();
 		await db.cards.add(cardData);
 	}
-
 	closeModal();
 	await updateCategoryFilter();
+	await updateCategoryList();
 	renderCards(categoryFilter.value);
 });
-
 cardList.addEventListener('click', async e => {
 	const playBtn = e.target.closest('.btn-play-audio');
+	const practiceBtn = e.target.closest('.btn-practice');
 	const editBtn = e.target.closest('.btn-edit');
 	const deleteBtn = e.target.closest('.btn-delete');
 	const spanishPlaceholder = e.target.closest('.spanish-placeholder');
-
 	if (spanishPlaceholder) {
 		const container = spanishPlaceholder.closest('.spanish-reveal-container');
 		const placeholder = container.querySelector('.spanish-placeholder');
@@ -971,8 +924,11 @@ cardList.addEventListener('click', async e => {
 		revealed.classList.remove('hidden');
 		return;
 	}
-
 	if (playBtn) playCardAudio(Number(playBtn.dataset.id));
+	if (practiceBtn) {
+		const card = await db.cards.get(Number(practiceBtn.dataset.id));
+		if (card) openPracticeModal(card);
+	}
 	if (editBtn) {
 		const card = await db.cards.get(Number(editBtn.dataset.id));
 		if (card) openModal(card);
@@ -985,25 +941,20 @@ cardList.addEventListener('click', async e => {
 		}
 	}
 });
-
 // Click/selection translation handlers
 let currentTooltip = null;
 let tooltipTimeout = null;
-
 // Handle text selection
 cardList.addEventListener('mouseup', async e => {
 	const spanishText = e.target.closest('.selectable-spanish');
 	if (!spanishText) return;
-
 	const selection = window.getSelection();
 	const selectedText = selection.toString().trim();
-
 	if (selectedText && selectedText.length > 0) {
 		// User selected text
 		await showTranslationTooltip(selectedText, selection.getRangeAt(0));
 	}
 });
-
 // Handle single word click
 cardList.addEventListener(
 	'click',
@@ -1011,11 +962,9 @@ cardList.addEventListener(
 		// Check if clicking on Spanish text
 		const spanishText = e.target.closest('.selectable-spanish');
 		if (!spanishText) return;
-
 		// Only if no text is selected
 		const selection = window.getSelection();
 		if (selection.toString().trim()) return;
-
 		// Get the word at click position
 		const word = getWordAtPosition(spanishText, e);
 		if (word) {
@@ -1024,7 +973,6 @@ cardList.addEventListener(
 	},
 	true,
 );
-
 // Show translation tooltip
 async function showTranslationTooltip(text, range, clientX, clientY) {
 	// Remove existing tooltip and clear timeout
@@ -1036,13 +984,11 @@ async function showTranslationTooltip(text, range, clientX, clientY) {
 		clearTimeout(tooltipTimeout);
 		tooltipTimeout = null;
 	}
-
 	// Create tooltip with loading state
 	const tooltip = document.createElement('div');
 	tooltip.className = 'translation-tooltip';
 	tooltip.textContent = 'Translating...';
 	document.body.appendChild(tooltip);
-
 	// Position tooltip
 	let x, y;
 	if (range) {
@@ -1053,21 +999,16 @@ async function showTranslationTooltip(text, range, clientX, clientY) {
 		x = clientX;
 		y = clientY;
 	}
-
 	tooltip.style.left = `${x}px`;
 	tooltip.style.top = `${y - 10}px`;
-
 	// Fetch translation
 	const translation = await translateText(text);
 	tooltip.textContent = translation;
-
 	// Show tooltip
 	requestAnimationFrame(() => {
 		tooltip.classList.add('show');
 	});
-
 	currentTooltip = tooltip;
-
 	// Remove tooltip function
 	const removeTooltip = () => {
 		if (currentTooltip) {
@@ -1080,34 +1021,26 @@ async function showTranslationTooltip(text, range, clientX, clientY) {
 		}
 		document.removeEventListener('click', removeTooltip);
 	};
-
 	// Auto-hide after 2 seconds
 	tooltipTimeout = setTimeout(() => {
 		removeTooltip();
 	}, 2000);
-
 	// Also remove on click
 	setTimeout(() => {
 		document.addEventListener('click', removeTooltip);
 	}, 100);
 }
-
 // Get word at click position
 function getWordAtPosition(element, event) {
 	const range = document.caretRangeFromPoint(event.clientX, event.clientY);
-
 	if (!range) return null;
-
 	const offset = range.startOffset;
 	const node = range.startContainer;
-
 	if (node.nodeType !== Node.TEXT_NODE) return null;
-
 	// Find word boundaries
 	const fullText = node.textContent;
 	const wordRegex = /[a-záéíóúñü]+/gi;
 	let match;
-
 	while ((match = wordRegex.exec(fullText)) !== null) {
 		if (offset >= match.index && offset <= match.index + match[0].length) {
 			return {
@@ -1117,32 +1050,25 @@ function getWordAtPosition(element, event) {
 			};
 		}
 	}
-
 	return null;
 }
-
 async function handleFileUpload(e) {
 	const file = e.target.files[0];
 	if (!file) return;
-
 	try {
 		const text = await file.text();
 		const lines = text
 			.split('\n')
 			.map(line => line.trim())
 			.filter(line => line.length > 0);
-
 		if (lines.length === 0) {
 			alert('No valid sentences found in the file.');
 			return;
 		}
-
 		const confirmed = confirm(
 			`Found ${lines.length} sentence${lines.length > 1 ? 's' : ''}. Create cards with blank Spanish translations?`,
 		);
-
 		if (!confirmed) return;
-
 		// Create cards
 		const timestamp = Date.now();
 		for (let i = 0; i < lines.length; i++) {
@@ -1151,10 +1077,12 @@ async function handleFileUpload(e) {
 				spanish: '',
 				categories: ['imported'],
 				audioBlob: null,
+				difficulty: 'beginner',
+				srs: { repetition: 0, interval: 0, ease: 2.5, lapses: 0 },
+				srsDue: timestamp,
 				createdAt: timestamp + i, // Slight offset to maintain order
 			});
 		}
-
 		alert(
 			`Successfully imported ${lines.length} card${lines.length > 1 ? 's' : ''}!`,
 		);
@@ -1168,22 +1096,18 @@ async function handleFileUpload(e) {
 		fileInput.value = '';
 	}
 }
-
 function escHtml(s) {
 	return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 function escAttr(s) {
 	return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
-
 // Clear button functionality
 function setupClearButton(inputId) {
 	const input = document.getElementById(inputId);
 	const clearBtn = document.querySelector(`[data-clear="${inputId}"]`);
 	const wrapper = clearBtn?.closest('.input-wrapper');
-
 	if (!input || !clearBtn || !wrapper) return;
-
 	function updateClearButton() {
 		if (input.value.trim()) {
 			clearBtn.classList.remove('hidden');
@@ -1193,30 +1117,23 @@ function setupClearButton(inputId) {
 			clearBtn.classList.remove('flex');
 		}
 	}
-
 	clearBtn.addEventListener('click', () => {
 		input.value = '';
 		updateClearButton();
 		input.focus();
 	});
-
 	input.addEventListener('input', updateClearButton);
-
 	input.addEventListener('focus', () => {
 		wrapper.classList.add('focus');
 	});
-
 	input.addEventListener('blur', () => {
 		wrapper.classList.remove('focus');
 	});
-
 	updateClearButton();
 }
-
 setupClearButton('input-english');
 setupClearButton('input-spanish');
 setupClearButton('input-tag');
-
 // Category emoji mapping
 const categoryEmojis = {
 	Breakfast: '🥐',
@@ -1229,7 +1146,6 @@ const categoryEmojis = {
 	Shopping: '🛒',
 	default: '📝',
 };
-
 const categorySpanishNames = {
 	Breakfast: 'Desayuno',
 	'The Home': 'El hogar',
@@ -1240,20 +1156,15 @@ const categorySpanishNames = {
 	'Drinking coffee': 'Tomando café',
 	Shopping: 'Compras',
 };
-
 function getCategoryEmoji(categoryName) {
 	return categoryEmojis[categoryName] || categoryEmojis['default'];
 }
-
 function getCategorySpanishName(categoryName) {
 	return categorySpanishNames[categoryName] || '';
 }
-
 let selectedCategory = '';
-
 async function updateCategoryList() {
 	const allCategories = await db.categories.orderBy('name').toArray();
-
 	categoryList.innerHTML = allCategories
 		.map(cat => {
 			const hexcode = cat.hexcode || '';
@@ -1266,8 +1177,7 @@ async function updateCategoryList() {
 			return `
 		<li class="group relative overflow-hidden rounded-xl transition-all mb-1 ${isSelected ? 'shadow-md scale-[1.02]' : 'hover:shadow-sm hover:scale-[1.01]'}" data-name="${escAttr(cat.name)}">
 			<div class="absolute inset-0 transition-opacity ${isSelected ? 'opacity-90' : 'opacity-0 group-hover:opacity-75'}" style="background: linear-gradient(to bottom right, ${color}, ${color}dd);"></div>
-			
-			<div class="relative px-4 py-3.5 flex items-center justify-between border-2 rounded-xl transition-all border-transparent ${isSelected ? '' : 'bg-white hover:border-gray-200'}">
+			<div class="relative px-4 py-3.5 flex items-center justify-between border-2 rounded-xl transition-all border-transparent min-h-[72px] ${isSelected ? '' : 'bg-white hover:border-gray-200'}">
 				<div class="flex items-center gap-3 flex-1 min-w-0">
 					<div class="shrink-0 w-8 h-8">${emojiDisplay}</div>
 					<div class="text-left min-w-0 flex-1">
@@ -1275,7 +1185,6 @@ async function updateCategoryList() {
 						${spanishName ? `<div class="text-xs text-gray-600 truncate">${escHtml(cat.name)}</div>` : ''}
 					</div>
 				</div>
-				
 				<div class="edit-buttons flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
 					<button type="button" class="btn-edit-category p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
 						<svg class="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1294,11 +1203,9 @@ async function updateCategoryList() {
 		})
 		.join('');
 }
-
 // Update category header display
 async function updateCategoryHeader() {
 	if (!categoryHeader) return;
-
 	if (selectedCategory) {
 		// Fetch category from database to get hexcode and spanish name
 		const category = await db.categories
@@ -1319,7 +1226,6 @@ async function updateCategoryHeader() {
 				</div>
 			</div>
 		`;
-
 		// Update mobile category display
 		updateMobileCategoryDisplay(category, hexcode, spanishName);
 	} else {
@@ -1328,7 +1234,6 @@ async function updateCategoryHeader() {
 		updateMobileCategoryDisplay(null, '', '');
 	}
 }
-
 // Update mobile category display in header
 function updateMobileCategoryDisplay(category, hexcode, spanishName) {
 	const mobileCategorySection = document.getElementById(
@@ -1339,12 +1244,9 @@ function updateMobileCategoryDisplay(category, hexcode, spanishName) {
 	const mobileCategorySubtitle = document.getElementById(
 		'mobile-category-subtitle',
 	);
-
 	if (!mobileCategorySection) return;
-
 	// Show the section
 	mobileCategorySection.classList.remove('hidden');
-
 	// If no category selected, show "All Cards"
 	if (!category && !selectedCategory) {
 		mobileCategoryIcon.textContent = '📝';
@@ -1352,14 +1254,12 @@ function updateMobileCategoryDisplay(category, hexcode, spanishName) {
 		mobileCategorySubtitle.textContent = '';
 		return;
 	}
-
 	// Update icon
 	if (hexcode) {
 		mobileCategoryIcon.innerHTML = `<img src="${getEmojiUrl(hexcode)}" alt="${selectedCategory}" class="w-10 h-10 object-contain" onerror="this.parentElement.textContent='📝';" />`;
 	} else {
 		mobileCategoryIcon.textContent = '📝';
 	}
-
 	// Update title and subtitle
 	if (spanishName) {
 		mobileCategoryTitle.textContent = spanishName;
@@ -1369,7 +1269,6 @@ function updateMobileCategoryDisplay(category, hexcode, spanishName) {
 		mobileCategorySubtitle.textContent = '';
 	}
 }
-
 // Filter button event listeners
 if (filterAllBtn) {
 	filterAllBtn.addEventListener('click', async () => {
@@ -1380,18 +1279,14 @@ if (filterAllBtn) {
 		await updateCategoryHeader();
 		filterAllBtn.classList.add(
 			'active',
-			'bg-gradient-to-r',
-			'from-blue-500',
-			'to-indigo-500',
+			'bg-violet-600',
 			'text-white',
 			'shadow-md',
 		);
 		filterAllBtn.classList.remove('text-gray-600', 'hover:text-gray-900');
 		filterAudioBtn.classList.remove(
 			'active',
-			'bg-gradient-to-r',
-			'from-blue-500',
-			'to-indigo-500',
+			'bg-violet-600',
 			'text-white',
 			'shadow-md',
 		);
@@ -1399,24 +1294,19 @@ if (filterAllBtn) {
 		renderCards('');
 	});
 }
-
 if (filterAudioBtn) {
 	filterAudioBtn.addEventListener('click', () => {
 		currentFilter = 'audio';
 		filterAudioBtn.classList.add(
 			'active',
-			'bg-gradient-to-r',
-			'from-blue-500',
-			'to-indigo-500',
+			'bg-violet-600',
 			'text-white',
 			'shadow-md',
 		);
 		filterAudioBtn.classList.remove('text-gray-600', 'hover:text-gray-900');
 		filterAllBtn.classList.remove(
 			'active',
-			'bg-gradient-to-r',
-			'from-blue-500',
-			'to-indigo-500',
+			'bg-violet-600',
 			'text-white',
 			'shadow-md',
 		);
@@ -1424,19 +1314,16 @@ if (filterAudioBtn) {
 		renderCards(categoryFilter.value);
 	});
 }
-
 // Initialize
 (async () => {
 	// Fetch and cache OpenMoji data
 	await fetchAndCacheEmojis();
-
 	await seedDatabase(); // Seed database with default data on first load
 	await updateCategoryList();
 	await updateCategoryFilter();
 	await updateCategorySelect();
 	await updateCategoryHeader();
 	await renderCards(''); // Start with all cards visible, no category selected
-
 	// Remove loading screen and show content
 	const loadingScreen = document.getElementById('app-loading-screen');
 	if (loadingScreen) {
@@ -1454,7 +1341,6 @@ if (filterAudioBtn) {
 	}
 	document.body.classList.add('loaded');
 });
-
 // Mobile event handlers
 const btnMobileMenu = document.getElementById('btn-mobile-menu');
 const btnAddMobile = document.getElementById('btn-add-mobile');
@@ -1470,7 +1356,6 @@ const categoryListMobile = document.getElementById('category-list-mobile');
 const btnAddCategoryMobile = document.getElementById('btn-add-category-mobile');
 const filterAllMobile = document.getElementById('filter-all-mobile');
 const filterAudioMobile = document.getElementById('filter-audio-mobile');
-
 // Mobile menu button
 if (btnMobileMenu) {
 	btnMobileMenu.addEventListener('click', () => {
@@ -1482,7 +1367,6 @@ if (btnMobileMenu) {
 		}
 	});
 }
-
 // Close mobile sidebar
 if (btnCloseSidebar) {
 	btnCloseSidebar.addEventListener('click', () => {
@@ -1494,7 +1378,6 @@ if (btnCloseSidebar) {
 		}
 	});
 }
-
 if (mobileSidebarBackdrop) {
 	mobileSidebarBackdrop.addEventListener('click', () => {
 		mobileSidebar.classList.remove('active');
@@ -1505,19 +1388,16 @@ if (mobileSidebarBackdrop) {
 		}
 	});
 }
-
 // Mobile add button
 if (btnAddMobile) {
 	btnAddMobile.addEventListener('click', () => openModal());
 }
-
 // Close category menu
 if (btnCloseCategoryMenu) {
 	btnCloseCategoryMenu.addEventListener('click', () => {
 		categoryMenuModal.close();
 	});
 }
-
 // Close modal when clicking backdrop
 if (categoryMenuModal) {
 	categoryMenuModal.addEventListener('click', e => {
@@ -1526,12 +1406,10 @@ if (categoryMenuModal) {
 		}
 	});
 }
-
 // Sync mobile category list with desktop
 async function syncMobileCategoryList() {
 	if (!categoryListMobile) return;
 	const allCategories = await db.categories.orderBy('name').toArray();
-
 	categoryListMobile.innerHTML = allCategories
 		.map(cat => {
 			const hexcode = cat.hexcode || '';
@@ -1544,8 +1422,7 @@ async function syncMobileCategoryList() {
 			return `
 		<li class="group relative overflow-hidden rounded-xl transition-all mb-1 ${isSelected ? 'shadow-md scale-[1.02]' : 'hover:shadow-sm hover:scale-[1.01]'}" data-name="${escAttr(cat.name)}">
 			<div class="absolute inset-0 transition-opacity ${isSelected ? 'opacity-90' : 'opacity-0 group-hover:opacity-75'}" style="background: linear-gradient(to bottom right, ${color}, ${color}dd);"></div>
-
-			<div class="relative px-4 py-3.5 flex items-center justify-between border-2 rounded-xl transition-all border-transparent ${isSelected ? '' : 'bg-white hover:border-gray-200'}">
+			<div class="relative px-4 py-3.5 flex items-center justify-between border-2 rounded-xl transition-all border-transparent min-h-[72px] ${isSelected ? '' : 'bg-white hover:border-gray-200'}">
 				<div class="flex items-center gap-3 flex-1 min-w-0">
 					<div class="shrink-0 w-12 h-12">${emojiDisplay}</div>
 					<div class="text-left min-w-0 flex-1">
@@ -1558,7 +1435,6 @@ async function syncMobileCategoryList() {
 	`;
 		})
 		.join('');
-
 	// Add click handlers
 	categoryListMobile.querySelectorAll('li[data-name]').forEach(li => {
 		li.addEventListener('click', async () => {
@@ -1568,7 +1444,6 @@ async function syncMobileCategoryList() {
 			await syncMobileCategoryList();
 			await updateCategoryList();
 			await updateCategoryHeader();
-
 			// Close mobile sidebar
 			mobileSidebar.classList.remove('active');
 			const sidebarContent = document.getElementById('mobile-sidebar-content');
@@ -1579,7 +1454,6 @@ async function syncMobileCategoryList() {
 		});
 	});
 }
-
 // Inline add-category form in mobile sidebar
 const mobileAddFormPanel = document.getElementById('mobile-add-category-form-panel');
 const mobileCategoryForm = document.getElementById('mobile-category-form');
@@ -1591,13 +1465,11 @@ const mobileEmojiPreview = document.getElementById('mobile-emoji-preview');
 const mobileEmojiSearchBtn = document.getElementById('mobile-emoji-search-btn');
 const mobileCategoryCancel = document.getElementById('mobile-category-cancel');
 const mobileColorSwatch = document.getElementById('mobile-color-swatch');
-
 if (mobileCategoryColor) {
 	mobileCategoryColor.addEventListener('input', () => {
 		if (mobileColorSwatch) mobileColorSwatch.style.backgroundColor = mobileCategoryColor.value;
 	});
 }
-
 function openMobileAddForm() {
 	if (!mobileAddFormPanel) return;
 	mobileCategoryForm.reset();
@@ -1608,12 +1480,10 @@ function openMobileAddForm() {
 	mobileAddFormPanel.classList.remove('hidden');
 	mobileCategoryEn.focus();
 }
-
 function closeMobileAddForm() {
 	if (!mobileAddFormPanel) return;
 	mobileAddFormPanel.classList.add('hidden');
 }
-
 if (btnAddCategoryMobile) {
 	btnAddCategoryMobile.addEventListener('click', () => {
 		if (mobileAddFormPanel && !mobileAddFormPanel.classList.contains('hidden')) {
@@ -1623,11 +1493,9 @@ if (btnAddCategoryMobile) {
 		}
 	});
 }
-
 if (mobileCategoryCancel) {
 	mobileCategoryCancel.addEventListener('click', closeMobileAddForm);
 }
-
 if (mobileEmojiSearchBtn) {
 	mobileEmojiSearchBtn.addEventListener('click', async () => {
 		// Reuse the same emoji search modal
@@ -1638,7 +1506,6 @@ if (mobileEmojiSearchBtn) {
 		window._mobileEmojiTarget = { hexcodeInput: mobileCategoryHexcode, preview: mobileEmojiPreview };
 	});
 }
-
 if (mobileCategoryForm) {
 	mobileCategoryForm.addEventListener('submit', async e => {
 		e.preventDefault();
@@ -1663,7 +1530,6 @@ if (mobileCategoryForm) {
 		closeMobileAddForm();
 	});
 }
-
 // Mobile filter buttons
 if (filterAllMobile) {
 	filterAllMobile.addEventListener('click', async () => {
@@ -1674,18 +1540,14 @@ if (filterAllMobile) {
 		await updateCategoryHeader();
 		filterAllMobile.classList.add(
 			'active',
-			'bg-gradient-to-r',
-			'from-blue-500',
-			'to-indigo-500',
+			'bg-violet-600',
 			'text-white',
 			'shadow-md',
 		);
 		filterAllMobile.classList.remove('text-gray-600', 'hover:text-gray-900');
 		filterAudioMobile.classList.remove(
 			'active',
-			'bg-gradient-to-r',
-			'from-blue-500',
-			'to-indigo-500',
+			'bg-violet-600',
 			'text-white',
 			'shadow-md',
 		);
@@ -1694,9 +1556,7 @@ if (filterAllMobile) {
 		if (filterAllBtn) {
 			filterAllBtn.classList.add(
 				'active',
-				'bg-gradient-to-r',
-				'from-blue-500',
-				'to-indigo-500',
+				'bg-violet-600',
 				'text-white',
 				'shadow-md',
 			);
@@ -1705,9 +1565,7 @@ if (filterAllMobile) {
 		if (filterAudioBtn) {
 			filterAudioBtn.classList.remove(
 				'active',
-				'bg-gradient-to-r',
-				'from-blue-500',
-				'to-indigo-500',
+				'bg-violet-600',
 				'text-white',
 				'shadow-md',
 			);
@@ -1716,24 +1574,19 @@ if (filterAllMobile) {
 		renderCards('');
 	});
 }
-
 if (filterAudioMobile) {
 	filterAudioMobile.addEventListener('click', () => {
 		currentFilter = 'audio';
 		filterAudioMobile.classList.add(
 			'active',
-			'bg-gradient-to-r',
-			'from-blue-500',
-			'to-indigo-500',
+			'bg-violet-600',
 			'text-white',
 			'shadow-md',
 		);
 		filterAudioMobile.classList.remove('text-gray-600', 'hover:text-gray-900');
 		filterAllMobile.classList.remove(
 			'active',
-			'bg-gradient-to-r',
-			'from-blue-500',
-			'to-indigo-500',
+			'bg-violet-600',
 			'text-white',
 			'shadow-md',
 		);
@@ -1742,9 +1595,7 @@ if (filterAudioMobile) {
 		if (filterAudioBtn) {
 			filterAudioBtn.classList.add(
 				'active',
-				'bg-gradient-to-r',
-				'from-blue-500',
-				'to-indigo-500',
+				'bg-violet-600',
 				'text-white',
 				'shadow-md',
 			);
@@ -1753,9 +1604,7 @@ if (filterAudioMobile) {
 		if (filterAllBtn) {
 			filterAllBtn.classList.remove(
 				'active',
-				'bg-gradient-to-r',
-				'from-blue-500',
-				'to-indigo-500',
+				'bg-violet-600',
 				'text-white',
 				'shadow-md',
 			);
@@ -1764,10 +1613,8 @@ if (filterAudioMobile) {
 		renderCards(categoryFilter.value);
 	});
 }
-
 // Initialize mobile category list on load
 syncMobileCategoryList();
-
 // Debug utilities for emoji troubleshooting
 window.debugClearEmojiCache = async () => {
 	console.log('Clearing emoji cache...');
@@ -1776,7 +1623,6 @@ window.debugClearEmojiCache = async () => {
 	console.log('Reloading...');
 	window.location.reload();
 };
-
 window.debugTestEmoji = async (searchTerm = 'smile') => {
 	console.log('Searching for:', searchTerm);
 	const results = await searchEmojis(searchTerm, 5);
@@ -1789,7 +1635,6 @@ window.debugTestEmoji = async (searchTerm = 'smile') => {
 		img.src = results[0].svgUrl;
 	}
 };
-
 window.debugCheckCache = async () => {
 	const count = await db.emojis.count();
 	console.log('Emojis in cache:', count);

@@ -73,6 +73,32 @@ db.version(6)
 		}
 	});
 
+// v7: add difficulty + spaced-repetition (SRS) fields to cards
+db.version(7)
+	.stores({
+		cards: '++id, createdAt, *categories, difficulty, srsDue',
+		categories: '++id, name',
+		emojis: '++id, hexcode, annotation, *tags, group, subgroups',
+	})
+	.upgrade(async tx => {
+		const now = Date.now();
+		await tx
+			.table('cards')
+			.toCollection()
+			.modify(card => {
+				if (!card.difficulty) card.difficulty = 'beginner';
+				if (!card.srs) {
+					card.srs = {
+						repetition: 0,
+						interval: 0, // days
+						ease: 2.5,
+						lapses: 0,
+					};
+				}
+				if (!card.srsDue) card.srsDue = now; // due immediately
+			});
+	});
+
 // Default seed data
 const seedData = [
 	{
@@ -206,6 +232,9 @@ export async function seedDatabase() {
 					categories: [categoryData.category],
 					createdAt: Date.now(),
 					audioBlob: null,
+					difficulty: 'beginner',
+					srs: { repetition: 0, interval: 0, ease: 2.5, lapses: 0 },
+					srsDue: Date.now(),
 				});
 			}
 			console.log(
