@@ -777,6 +777,7 @@ function setupCategoryModal() {
 			await updateCategoryFilter();
 			await updateCategorySelect();
 			await updateCategoryHeader();
+			await syncMobileCategoryList();
 			renderCards(categoryFilter.value);
 		} else {
 			// Add new category
@@ -1493,6 +1494,7 @@ async function syncMobileCategoryList() {
 			const name = li.dataset.name;
 			if (e.target.closest('.btn-edit-category')) {
 				e.stopPropagation();
+				closeMobileSidebar();
 				await window.openEditCategoryModal(name);
 				return;
 			}
@@ -1522,13 +1524,6 @@ async function syncMobileCategoryList() {
 			await syncMobileCategoryList();
 			await updateCategoryList();
 			await updateCategoryHeader();
-			// Close mobile sidebar
-			mobileSidebar.classList.remove('active');
-			const sidebarContent = document.getElementById('mobile-sidebar-content');
-			if (sidebarContent) {
-				sidebarContent.classList.add('-translate-x-full');
-				sidebarContent.classList.remove('translate-x-0');
-			}
 		});
 	});
 }
