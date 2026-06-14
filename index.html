@@ -52,8 +52,8 @@
         opacity: 1;
       }
     </style>
-    <script type="module" crossorigin src="/language-flashcards/assets/index-BhAIabFD.js"></script>
-    <link rel="stylesheet" crossorigin href="/language-flashcards/assets/index-B0ByE0PK.css">
+    <script type="module" crossorigin src="/language-flashcards/assets/index-CSwa6XKP.js"></script>
+    <link rel="stylesheet" crossorigin href="/language-flashcards/assets/index-D9RZlp28.css">
   </head>
   <body>
     <!-- Loading Screen -->
@@ -319,6 +319,19 @@
     <!-- Category modals (must be at body level so they work when desktop sidebar is hidden on mobile) -->
     <div id="category-modal-container"></div>
 
+    <!-- Confirm Dialog -->
+    <dialog id="confirm-dialog" class="border-0 rounded-2xl p-0 w-[min(400px,90vw)] shadow-[0_8px_32px_rgba(0,0,0,.22)] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 m-0 backdrop:bg-black/50">
+      <div class="p-6">
+        <h3 id="confirm-dialog-title" class="text-base font-semibold text-gray-900 mb-2"></h3>
+        <p id="confirm-dialog-message" class="text-sm text-gray-500 leading-relaxed"></p>
+      </div>
+      <div class="flex border-t border-gray-100">
+        <button id="confirm-dialog-cancel" class="flex-1 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors rounded-bl-2xl">Cancel</button>
+        <div class="w-px bg-gray-100"></div>
+        <button id="confirm-dialog-ok" class="flex-1 py-3 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors rounded-br-2xl">Delete</button>
+      </div>
+    </dialog>
+
     <!-- Mobile Sidebar Menu -->
     <div id="mobile-sidebar" class="fixed inset-0 z-50 hidden">
       <div class="absolute inset-0 bg-black/40" id="mobile-sidebar-backdrop"></div>
@@ -347,7 +360,7 @@
         </div>
 
         <!-- Inline add category form (hidden by default) -->
-        <div id="mobile-add-category-form-panel" class="hidden border-b border-gray-200 bg-white p-4 flex-shrink-0">
+        <div id="mobile-add-category-form-panel" class="border-b border-gray-200 bg-white flex-shrink-0">
           <h4 class="text-sm font-bold text-gray-900 mb-3">New Category</h4>
           <form id="mobile-category-form">
             <div class="mb-3">
