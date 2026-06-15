@@ -192,7 +192,7 @@ async function renderCards(filterCategory = '') {
 								: ''
 						}
 						${
-							card.spanish && isSpeechRecognitionSupported()
+							card.audioBlob && card.spanish && isSpeechRecognitionSupported()
 								? `<button class="btn-practice p-3 text-white rounded-xl hover:shadow-md transition-all cursor-pointer border-0" style="background: linear-gradient(to right, ${cardColor}, ${cardColor}dd);" data-id="${card.id}" aria-label="Practice pronunciation" title="Practice pronunciation">
 										<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
 											<path d="M12 14a3 3 0 003-3V6a3 3 0 00-6 0v5a3 3 0 003 3z"/>
