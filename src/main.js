@@ -907,6 +907,16 @@ const sortOrderSelect = document.getElementById('sort-order');
 if (sortOrderSelect) {
 	sortOrderSelect.addEventListener('change', () => {
 		currentSort = sortOrderSelect.value;
+		const mobile = document.getElementById('sort-order-mobile');
+		if (mobile) mobile.value = currentSort;
+		renderCards(categoryFilter.value);
+	});
+}
+const sortOrderMobile = document.getElementById('sort-order-mobile');
+if (sortOrderMobile) {
+	sortOrderMobile.addEventListener('change', () => {
+		currentSort = sortOrderMobile.value;
+		if (sortOrderSelect) sortOrderSelect.value = currentSort;
 		renderCards(categoryFilter.value);
 	});
 }
@@ -1300,7 +1310,7 @@ function updateMobileCategoryDisplay(category, hexcode, spanishName) {
 	mobileCategorySection.classList.remove('hidden');
 	// If no category selected, show "All Cards"
 	if (!category && !selectedCategory) {
-		mobileCategoryIcon.textContent = '📝';
+		mobileCategoryIcon.textContent = '📚';
 		mobileCategoryTitle.textContent = 'All Cards';
 		mobileCategorySubtitle.textContent = '';
 		return;
