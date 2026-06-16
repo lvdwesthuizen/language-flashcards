@@ -53,8 +53,8 @@
         opacity: 1;
       }
     </style>
-    <script type="module" crossorigin src="/language-flashcards/assets/index-okt-8fxz.js"></script>
-    <link rel="stylesheet" crossorigin href="/language-flashcards/assets/index-yFOIb5pu.css">
+    <script type="module" crossorigin src="/language-flashcards/assets/index-B1ex17Fx.js"></script>
+    <link rel="stylesheet" crossorigin href="/language-flashcards/assets/index-CzNSqzJ8.css">
   <link rel="manifest" href="/language-flashcards/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/language-flashcards/registerSW.js"></script></head>
   <body>
     <!-- Loading Screen -->
@@ -161,7 +161,7 @@
         <!-- Mobile Category Display -->
         <div id="mobile-category-section" class="hidden mb-4 p-4">
           <div class="flex items-center gap-4">
-            <span id="mobile-category-icon" class="text-5xl">📝</span>
+            <span id="mobile-category-icon" class="text-5xl">📚</span>
             <div class="flex-1">
               <div id="mobile-category-title" class="text-3xl font-bold text-gray-900 leading-tight mb-1"></div>
               <div id="mobile-category-subtitle" class="text-base text-gray-600"></div>
@@ -179,12 +179,19 @@
           <div class="flex items-center gap-3">
             <div class="flex items-center gap-2">
               <label for="sort-order" class="text-sm font-medium text-gray-600 whitespace-nowrap">Order by</label>
-              <select id="sort-order" class="px-3 py-2 text-sm font-medium bg-white border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 cursor-pointer">
-                <option value="createdAt-desc">Newest first</option>
-                <option value="createdAt-asc">Oldest first</option>
-                <option value="difficulty-asc">Difficulty (easy→hard)</option>
-                <option value="difficulty-desc">Difficulty (hard→easy)</option>
-              </select>
+              <div class="relative">
+                <select id="sort-order" class="appearance-none pl-4 pr-10 py-2 text-sm font-medium bg-white border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 cursor-pointer">
+                  <option value="createdAt-desc">Newest first</option>
+                  <option value="createdAt-asc">Oldest first</option>
+                  <option value="difficulty-asc">Difficulty (easy→hard)</option>
+                  <option value="difficulty-desc">Difficulty (hard→easy)</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                  <svg class="h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+              </div>
             </div>
             <div class="flex items-center gap-2 bg-white rounded-xl border border-gray-200 p-1 shadow-sm">
               <button
@@ -204,19 +211,37 @@
         </div>
 
         <!-- Mobile Filter Buttons -->
-        <div class="mobile-filters hidden mb-4 flex items-center gap-2 bg-white rounded-xl border border-gray-200 p-1 shadow-sm">
-          <button
-            id="filter-all-mobile"
-            class="filter-btn flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-all bg-violet-600 text-white shadow-md cursor-pointer"
-          >
-            All cards
-          </button>
-          <button
-            id="filter-audio-mobile"
-            class="filter-btn flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-all text-gray-600 hover:text-gray-900 cursor-pointer"
-          >
-            With audio
-          </button>
+        <div class="mobile-filters hidden mb-4 flex flex-col gap-2">
+          <div class="flex items-center gap-2 bg-white rounded-xl border border-gray-200 p-1 shadow-sm">
+            <button
+              id="filter-all-mobile"
+              class="filter-btn flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-all bg-violet-600 text-white shadow-md cursor-pointer"
+            >
+              All cards
+            </button>
+            <button
+              id="filter-audio-mobile"
+              class="filter-btn flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-all text-gray-600 hover:text-gray-900 cursor-pointer"
+            >
+              With audio
+            </button>
+          </div>
+          <div class="flex items-center gap-2">
+            <label for="sort-order-mobile" class="text-sm font-medium text-gray-600 whitespace-nowrap">Order by</label>
+            <div class="relative flex-1">
+              <select id="sort-order-mobile" class="appearance-none w-full pl-4 pr-10 py-2 text-sm font-medium bg-white border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 cursor-pointer">
+                <option value="createdAt-desc">Newest first</option>
+                <option value="createdAt-asc">Oldest first</option>
+                <option value="difficulty-asc">Difficulty (easy→hard)</option>
+                <option value="difficulty-desc">Difficulty (hard→easy)</option>
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                <svg class="h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                </svg>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div id="card-list" class="flex-1 flex flex-col gap-4">
