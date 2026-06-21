@@ -69,7 +69,7 @@ export function gradeAttempt(transcripts, expected) {
 
 // Run a single recognition session. Resolves with an array of transcript
 // alternatives, rejects with an error code string.
-function recognizeSpeech() {
+export function recognizeSpeech() {
 	return new Promise((resolve, reject) => {
 		const recognition = new SpeechRecognition();
 		recognition.lang = 'es-ES';

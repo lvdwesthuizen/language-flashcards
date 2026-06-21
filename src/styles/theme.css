@@ -227,21 +227,30 @@
 		background: #6d28d9;
 	}
 
-	/* Difficulty badges */
-	.difficulty-badge {
-		@apply inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold;
+	/* Practice flip card */
+	.practice-card {
+		perspective: 1200px;
 	}
 
-	.difficulty-beginner {
-		@apply bg-emerald-50 text-emerald-700 border border-emerald-200;
+	.practice-card-inner {
+		position: relative;
+		transform-style: preserve-3d;
+		transition: transform 0.5s;
 	}
 
-	.difficulty-intermediate {
-		@apply bg-amber-50 text-amber-700 border border-amber-200;
+	.practice-card.flipped .practice-card-inner {
+		transform: rotateY(180deg);
 	}
 
-	.difficulty-advanced {
-		@apply bg-rose-50 text-rose-700 border border-rose-200;
+	.practice-face {
+		backface-visibility: hidden;
+		-webkit-backface-visibility: hidden;
+	}
+
+	.practice-face.back {
+		position: absolute;
+		inset: 0;
+		transform: rotateY(180deg);
 	}
 }
 

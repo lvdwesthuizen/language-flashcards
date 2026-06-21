@@ -21,6 +21,40 @@ function normalizeText(text) {
 }
 
 /**
+ * Translate English text to Spanish
+ * @param {string} text - English text to translate
+ * @returns {Promise<string>} - Spanish translation or empty string if fails
+ */
+export async function translateToSpanish(text) {
+	if (!text || typeof text !== 'string') return '';
+
+	try {
+		const params = new URLSearchParams({
+			q: text.trim(),
+			langpair: 'en|es',
+		});
+
+		const response = await fetch(`${API_URL}?${params}`, { method: 'GET' });
+
+		if (!response.ok) {
+			console.warn(`Translation API error for "${text}":`, response.status);
+			return '';
+		}
+
+		const data = await response.json();
+
+		if (data.responseData && data.responseData.translatedText) {
+			return data.responseData.translatedText.trim();
+		}
+
+		return '';
+	} catch (error) {
+		console.warn(`Translation failed for "${text}":`, error.message);
+		return '';
+	}
+}
+
+/**
  * Translate Spanish text (word or phrase) to English
  * @param {string} text - Spanish text to translate
  * @returns {Promise<string>} - English translation or original text if fails

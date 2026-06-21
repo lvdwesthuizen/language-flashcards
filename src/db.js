@@ -110,27 +110,22 @@ const seedData = [
 			{
 				english: 'My name is Ana',
 				spanish: 'Me llamo Ana',
-				difficulty: 'beginner',
 			},
 			{
 				english: 'Nice to meet you',
 				spanish: 'Mucho gusto',
-				difficulty: 'beginner',
 			},
 			{
 				english: 'I am from the United States',
 				spanish: 'Soy de los Estados Unidos',
-				difficulty: 'intermediate',
 			},
 			{
 				english: 'I am learning Spanish because I love the culture',
 				spanish: 'Estoy aprendiendo español porque me encanta la cultura',
-				difficulty: 'advanced',
 			},
 			{
 				english: 'I work as a teacher and I live in the city',
 				spanish: 'Trabajo como profesor y vivo en la ciudad',
-				difficulty: 'intermediate',
 			},
 		],
 	},
@@ -143,27 +138,22 @@ const seedData = [
 			{
 				english: 'The menu, please',
 				spanish: 'El menú, por favor',
-				difficulty: 'beginner',
 			},
 			{
 				english: 'I would like a coffee',
 				spanish: 'Quisiera un café',
-				difficulty: 'beginner',
 			},
 			{
 				english: 'What do you recommend?',
 				spanish: '¿Qué me recomienda?',
-				difficulty: 'beginner',
 			},
 			{
 				english: 'I would like to order the chicken with rice',
 				spanish: 'Me gustaría pedir el pollo con arroz',
-				difficulty: 'intermediate',
 			},
 			{
 				english: 'Could you bring me the bill when you have a moment?',
 				spanish: '¿Me podría traer la cuenta cuando tenga un momento?',
-				difficulty: 'advanced',
 			},
 		],
 	},
@@ -176,27 +166,22 @@ const seedData = [
 			{
 				english: 'How are you?',
 				spanish: '¿Cómo estás?',
-				difficulty: 'beginner',
 			},
 			{
 				english: 'What time is it?',
 				spanish: '¿Qué hora es?',
-				difficulty: 'beginner',
 			},
 			{
 				english: 'How do you say this in Spanish?',
 				spanish: '¿Cómo se dice esto en español?',
-				difficulty: 'intermediate',
 			},
 			{
 				english: 'Can you repeat that more slowly, please?',
 				spanish: '¿Puede repetir eso más despacio, por favor?',
-				difficulty: 'intermediate',
 			},
 			{
 				english: 'Could you help me, I do not understand what this means?',
 				spanish: '¿Podría ayudarme, no entiendo lo que significa esto?',
-				difficulty: 'advanced',
 			},
 		],
 	},
@@ -209,27 +194,22 @@ const seedData = [
 			{
 				english: 'How much does it cost?',
 				spanish: '¿Cuánto cuesta?',
-				difficulty: 'beginner',
 			},
 			{
 				english: 'I need some bread',
 				spanish: 'Necesito un poco de pan',
-				difficulty: 'beginner',
 			},
 			{
 				english: 'Where are the vegetables?',
 				spanish: '¿Dónde están las verduras?',
-				difficulty: 'beginner',
 			},
 			{
 				english: 'Do you have fresh fruit today?',
 				spanish: '¿Tiene fruta fresca hoy?',
-				difficulty: 'intermediate',
 			},
 			{
 				english: 'I am looking for milk, eggs, and a dozen apples',
 				spanish: 'Estoy buscando leche, huevos y una docena de manzanas',
-				difficulty: 'advanced',
 			},
 		],
 	},
@@ -242,27 +222,22 @@ const seedData = [
 			{
 				english: 'The clothes are clean',
 				spanish: 'La ropa está limpia',
-				difficulty: 'beginner',
 			},
 			{
 				english: 'I need to do laundry',
 				spanish: 'Necesito lavar la ropa',
-				difficulty: 'beginner',
 			},
 			{
 				english: 'Where is the washing machine?',
 				spanish: '¿Dónde está la lavadora?',
-				difficulty: 'intermediate',
 			},
 			{
 				english: 'I have to hang the clothes out to dry',
 				spanish: 'Tengo que tender la ropa para que se seque',
-				difficulty: 'intermediate',
 			},
 			{
 				english: 'Please separate the white clothes from the colored ones',
 				spanish: 'Por favor separa la ropa blanca de la ropa de color',
-				difficulty: 'advanced',
 			},
 		],
 	},
@@ -275,27 +250,22 @@ const seedData = [
 			{
 				english: 'I am hungry',
 				spanish: 'Tengo hambre',
-				difficulty: 'beginner',
 			},
 			{
 				english: 'The food is ready',
 				spanish: 'La comida está lista',
-				difficulty: 'beginner',
 			},
 			{
 				english: 'I am going to cook dinner',
 				spanish: 'Voy a cocinar la cena',
-				difficulty: 'intermediate',
 			},
 			{
 				english: 'Can you pass me the salt, please?',
 				spanish: '¿Me puedes pasar la sal, por favor?',
-				difficulty: 'intermediate',
 			},
 			{
 				english: 'First we heat the oil and then we add the onion',
 				spanish: 'Primero calentamos el aceite y luego añadimos la cebolla',
-				difficulty: 'advanced',
 			},
 		],
 	},
@@ -308,27 +278,22 @@ const seedData = [
 			{
 				english: 'It is here',
 				spanish: 'Está aquí',
-				difficulty: 'beginner',
 			},
 			{
 				english: 'The book is on the table',
 				spanish: 'El libro está sobre la mesa',
-				difficulty: 'intermediate',
 			},
 			{
 				english: 'The cat is under the chair',
 				spanish: 'El gato está debajo de la silla',
-				difficulty: 'intermediate',
 			},
 			{
 				english: 'The store is next to the bank',
 				spanish: 'La tienda está al lado del banco',
-				difficulty: 'intermediate',
 			},
 			{
 				english: 'The keys are between the books and the lamp',
 				spanish: 'Las llaves están entre los libros y la lámpara',
-				difficulty: 'advanced',
 			},
 		],
 	},
@@ -341,27 +306,22 @@ const seedData = [
 			{
 				english: 'Where is the bathroom?',
 				spanish: '¿Dónde está el baño?',
-				difficulty: 'beginner',
 			},
 			{
 				english: 'Is it far from here?',
 				spanish: '¿Está lejos de aquí?',
-				difficulty: 'beginner',
 			},
 			{
 				english: 'How do I get to the station?',
 				spanish: '¿Cómo llego a la estación?',
-				difficulty: 'intermediate',
 			},
 			{
 				english: 'Turn right at the next corner',
 				spanish: 'Gira a la derecha en la próxima esquina',
-				difficulty: 'intermediate',
 			},
 			{
 				english: 'Go straight ahead and then turn left at the traffic light',
 				spanish: 'Siga todo recto y luego gire a la izquierda en el semáforo',
-				difficulty: 'advanced',
 			},
 		],
 	},
@@ -374,31 +334,54 @@ const seedData = [
 			{
 				english: 'I am happy',
 				spanish: 'Estoy feliz',
-				difficulty: 'beginner',
 			},
 			{
 				english: 'I am very tired',
 				spanish: 'Estoy muy cansado',
-				difficulty: 'beginner',
 			},
 			{
 				english: 'I am a little nervous today',
 				spanish: 'Estoy un poco nervioso hoy',
-				difficulty: 'intermediate',
 			},
 			{
 				english: 'I feel excited about the trip',
 				spanish: 'Me siento emocionado por el viaje',
-				difficulty: 'intermediate',
 			},
 			{
 				english: 'I am worried because I have a lot of work to do',
 				spanish: 'Estoy preocupado porque tengo mucho trabajo que hacer',
-				difficulty: 'advanced',
 			},
 		],
 	},
 ];
+
+export async function exportData() {
+	const cards = await db.cards.toArray();
+	const categories = await db.categories.toArray();
+	const cleaned = cards.map(({ audioBlob, ...rest }) => rest);
+	return { version: 1, exportedAt: Date.now(), categories, cards: cleaned };
+}
+
+export async function importData(json, mode = 'merge') {
+	if (mode === 'replace') {
+		await db.cards.clear();
+		await db.categories.clear();
+	}
+	for (const cat of json.categories) {
+		const { id, ...rest } = cat;
+		const exists = await db.categories.where('name').equals(rest.name).count();
+		if (!exists) await db.categories.add(rest);
+	}
+	for (const card of json.cards) {
+		const { id, ...rest } = card;
+		if (mode === 'merge') {
+			const dup = await db.cards.where('english').equals(rest.english).count();
+			if (!dup) await db.cards.add({ ...rest, audioBlob: null });
+		} else {
+			await db.cards.add({ ...rest, audioBlob: null });
+		}
+	}
+}
 
 // Seed the database with default data
 export async function seedDatabase() {
@@ -439,7 +422,6 @@ export async function seedDatabase() {
 					categories: [categoryData.category],
 					createdAt: Date.now(),
 					audioBlob: null,
-					difficulty: phrase.difficulty || 'beginner',
 					srs: { repetition: 0, interval: 0, ease: 2.5, lapses: 0 },
 					srsDue: Date.now(),
 				});

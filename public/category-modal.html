@@ -3,31 +3,13 @@
   <form id="category-modal-form" method="dialog">
     <h2 class="mb-5 text-xl font-semibold">Add Category</h2>
     
-    <label class="flex flex-col gap-1.5 text-[0.85rem] font-semibold text-app-text-muted mb-4">
-      Icon
-      <div class="flex items-center gap-3">
-        <div id="selected-emoji-preview" class="w-12 h-12 flex items-center justify-center text-2xl overflow-hidden">
-          📝
-        </div>
-        <button type="button" id="category-emoji-search-btn" class="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-xl transition-all">
-          Choose Icon
-        </button>
-      </div>
+    <div class="flex items-center gap-3 mb-4">
+      <div id="selected-emoji-preview" class="w-12 h-12 flex items-center justify-center text-2xl overflow-hidden hidden"></div>
+      <button type="button" id="category-emoji-search-btn" class="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-xl transition-all">
+        Choose Icon
+      </button>
       <input type="hidden" id="input-category-hexcode" name="hexcode" value="">
-    </label>
-    
-    <label class="flex flex-col gap-1.5 text-[0.85rem] font-semibold text-app-text-muted mb-4">
-      Color
-      <div class="flex items-center gap-3">
-        <div id="color-swatch" class="w-12 h-12 rounded-lg flex-shrink-0" style="background-color: #3b82f6;"></div>
-        <div class="relative">
-          <button type="button" id="color-picker-btn" class="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-xl transition-all">
-            Choose Colour
-          </button>
-          <input type="color" id="input-category-color" name="color" value="#3b82f6" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer" tabindex="-1">
-        </div>
-      </div>
-    </label>
+    </div>
     
     <label class="flex flex-col gap-1.5 text-[0.85rem] font-semibold text-app-text-muted mb-4">
       English Name

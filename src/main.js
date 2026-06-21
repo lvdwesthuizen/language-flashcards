@@ -25,8 +25,8 @@ function showConfirm({ title, message, okLabel = 'Delete', okClass = 'text-red-5
 		dialog.showModal();
 	});
 }
-import { db, seedDatabase } from './db.js';
-import { translateText } from './translate.js';
+import { db, seedDatabase, exportData, importData } from './db.js';
+import { translateText, translateToSpanish } from './translate.js';
 import {
 	fetchAndCacheEmojis,
 	searchEmojis,
@@ -37,6 +37,7 @@ import {
 	openPracticeModal,
 	isSpeechRecognitionSupported,
 } from './pronunciation.js';
+import { openPracticeSetup } from './practice.js';
 const cardList = document.getElementById('card-list');
 const modal = document.getElementById('modal');
 const cardForm = document.getElementById('card-form');
@@ -61,6 +62,7 @@ const categoryHeader = document.getElementById('category-header');
 const filterAllBtn = document.getElementById('filter-all');
 const filterAudioBtn = document.getElementById('filter-audio');
 const btnAdd = document.getElementById('btn-add');
+const btnExport = document.getElementById('btn-export');
 const btnImport = document.getElementById('btn-import');
 const fileInput = document.getElementById('file-input');
 const btnCancel = document.getElementById('btn-cancel');
@@ -71,7 +73,6 @@ const btnDeleteAudio = document.getElementById('btn-delete-audio');
 const recordingStatus = document.getElementById('recording-status');
 let editingId = null;
 let currentCategories = [];
-let currentDifficulty = 'beginner';
 let currentAudioBlob = null;
 let mediaRecorder = null;
 let recordingChunks = [];
@@ -80,9 +81,31 @@ let recordingTimer = null;
 let previewAudio = null;
 let recordingMimeType = '';
 let currentFilter = 'all'; // 'all' or 'audio'
-let currentSort = 'createdAt-desc';
-const difficultyOrder = { beginner: 0, intermediate: 1, advanced: 2 };
 const MAX_RECORDING_DURATION = 30000; // 30 seconds
+
+// Tailwind colors Red→Rose at shades 300–900
+const CATEGORY_COLORS = [
+	'#fca5a5','#f87171','#ef4444','#dc2626','#b91c1c','#991b1b','#7f1d1d',
+	'#fdba74','#fb923c','#f97316','#ea580c','#c2410c','#9a3412','#7c2d12',
+	'#fcd34d','#fbbf24','#f59e0b','#d97706','#b45309','#92400e','#78350f',
+	'#fde047','#facc15','#eab308','#ca8a04','#a16207','#854d0e','#713f12',
+	'#bef264','#a3e635','#84cc16','#65a30d','#4d7c0f','#3f6212','#365314',
+	'#86efac','#4ade80','#22c55e','#16a34a','#15803d','#166534','#14532d',
+	'#6ee7b7','#34d399','#10b981','#059669','#047857','#065f46','#064e3b',
+	'#5eead4','#2dd4bf','#14b8a6','#0d9488','#0f766e','#115e59','#134e4a',
+	'#67e8f9','#22d3ee','#06b6d4','#0891b2','#0e7490','#155e75','#164e63',
+	'#7dd3fc','#38bdf8','#0ea5e9','#0284c7','#0369a1','#075985','#0c4a6e',
+	'#93c5fd','#60a5fa','#3b82f6','#2563eb','#1d4ed8','#1e40af','#1e3a8a',
+	'#a5b4fc','#818cf8','#6366f1','#4f46e5','#4338ca','#3730a3','#312e81',
+	'#c4b5fd','#a78bfa','#8b5cf6','#7c3aed','#6d28d9','#5b21b6','#4c1d95',
+	'#d8b4fe','#c084fc','#a855f7','#9333ea','#7e22ce','#6b21a8','#581c87',
+	'#f0abfc','#e879f9','#d946ef','#c026d3','#a21caf','#86198f','#701a75',
+	'#f9a8d4','#f472b6','#ec4899','#db2777','#be185d','#9d174d','#831843',
+	'#fda4af','#fb7185','#f43f5e','#e11d48','#be123c','#9f1239','#881337',
+];
+function randomCategoryColor() {
+	return CATEGORY_COLORS[Math.floor(Math.random() * CATEGORY_COLORS.length)];
+}
 async function renderCards(filterCategory = '') {
 	let cards;
 	if (filterCategory) {
@@ -93,18 +116,7 @@ async function renderCards(filterCategory = '') {
 	} else {
 		cards = await db.cards.orderBy('createdAt').toArray();
 	}
-	const [sortField, sortDir] = currentSort.split('-');
-	cards.sort((a, b) => {
-		let aVal, bVal;
-		if (sortField === 'difficulty') {
-			aVal = difficultyOrder[a.difficulty || 'beginner'];
-			bVal = difficultyOrder[b.difficulty || 'beginner'];
-		} else {
-			aVal = a.createdAt || 0;
-			bVal = b.createdAt || 0;
-		}
-		return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
-	});
+	cards.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 	// Apply audio filter
 	if (currentFilter === 'audio') {
 		cards = cards.filter(card => card.audioBlob);
@@ -146,16 +158,6 @@ async function renderCards(filterCategory = '') {
 							</div>
 						</div>
 						<div class="flex items-center gap-2 flex-wrap">
-							${
-								{
-									beginner:
-										'<span class="difficulty-badge difficulty-beginner">🌱 Beginner</span>',
-									intermediate:
-										'<span class="difficulty-badge difficulty-intermediate">🌿 Intermediate</span>',
-									advanced:
-										'<span class="difficulty-badge difficulty-advanced">🌳 Advanced</span>',
-								}[card.difficulty || 'beginner']
-							}
 							${
 								card.audioBlob
 									? `<div class="px-2 py-1 bg-green-50 border border-green-200 rounded-lg flex items-center gap-1.5">
@@ -310,29 +312,6 @@ function updateDropdownLabel() {
 		categoryDropdownLabel.classList.add('text-app-text');
 	}
 }
-const difficultyActiveClasses = {
-	beginner: ['border-emerald-400', 'bg-emerald-50', 'text-emerald-700'],
-	intermediate: ['border-amber-400', 'bg-amber-50', 'text-amber-700'],
-	advanced: ['border-rose-400', 'bg-rose-50', 'text-rose-700'],
-};
-function setDifficulty(level) {
-	currentDifficulty = level;
-	document.querySelectorAll('.difficulty-option').forEach(btn => {
-		const active = btn.dataset.difficulty === level;
-		Object.values(difficultyActiveClasses)
-			.flat()
-			.forEach(cls => btn.classList.remove(cls));
-		btn.classList.toggle('border-gray-200', !active);
-		btn.classList.toggle('text-gray-600', !active);
-		if (active) {
-			btn.classList.add(...difficultyActiveClasses[level]);
-		}
-	});
-}
-document.getElementById('difficulty-options')?.addEventListener('click', e => {
-	const btn = e.target.closest('.difficulty-option');
-	if (btn) setDifficulty(btn.dataset.difficulty);
-});
 function toggleDropdown() {
 	const isHidden = categoryDropdownMenu.classList.contains('hidden');
 	if (isHidden) {
@@ -473,7 +452,6 @@ async function openModal(card = null) {
 	inputEs.value = card ? card.spanish : '';
 	currentCategories = card && card.categories ? [...card.categories] : [];
 	currentAudioBlob = card && card.audioBlob ? card.audioBlob : null;
-	setDifficulty(card?.difficulty || 'beginner');
 	await updateCategorySelect();
 	renderCategoryChips();
 	closeDropdown();
@@ -528,6 +506,21 @@ function closeModal() {
 }
 // Event Listeners
 btnAdd.addEventListener('click', () => openModal());
+btnExport.addEventListener('click', async () => {
+	const data = await exportData();
+	const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = `spanish-cards-${new Date().toISOString().slice(0, 10)}.json`;
+	a.click();
+	URL.revokeObjectURL(url);
+
+	const dialog = document.getElementById('export-success-dialog');
+	document.getElementById('export-success-ok').addEventListener('click', () => dialog.close(), { once: true });
+	dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); }, { once: true });
+	dialog.showModal();
+});
 btnImport.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', handleFileUpload);
 btnCancel.addEventListener('click', closeModal);
@@ -594,7 +587,6 @@ function setupCategoryModal() {
 	const modal = document.getElementById('category-modal');
 	const form = document.getElementById('category-modal-form');
 	const hexcodeInput = document.getElementById('input-category-hexcode');
-	const colorInput = document.getElementById('input-category-color');
 	const emojiPreview = document.getElementById('selected-emoji-preview');
 	const emojiSearchBtn = document.getElementById('category-emoji-search-btn');
 	const inputEn = document.getElementById('input-category-en');
@@ -619,9 +611,8 @@ function setupCategoryModal() {
 		inputEn.value = '';
 		inputEs.value = '';
 		hexcodeInput.value = '';
-		colorInput.value = '#3b82f6'; // Default blue
-		if (colorSwatch) colorSwatch.style.backgroundColor = '#3b82f6';
-		emojiPreview.innerHTML = '📝';
+		emojiPreview.innerHTML = '';
+		emojiPreview.classList.add('hidden');
 		inputEn.focus();
 	};
 	// Function to open modal for editing
@@ -631,27 +622,22 @@ function setupCategoryModal() {
 			.equals(categoryName)
 			.first();
 		if (!category) return;
-		editingCategory = { id: category.id, oldName: category.name };
+		editingCategory = { id: category.id, oldName: category.name, color: category.color };
 		modalTitle.textContent = 'Edit Category';
 		submitBtn.textContent = 'Save Changes';
 		modal.showModal();
 		inputEn.value = category.name;
 		inputEs.value = category.spanish || '';
 		hexcodeInput.value = category.hexcode || '';
-		colorInput.value = category.color || '#3b82f6';
-		if (colorSwatch) colorSwatch.style.backgroundColor = colorInput.value;
 		if (category.hexcode) {
-			emojiPreview.innerHTML = `<img src="${getEmojiUrl(category.hexcode)}" alt="${category.name}" class="w-full h-full object-contain p-1" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" /><span class="text-3xl hidden">📝</span>`;
+			emojiPreview.innerHTML = `<img src="${getEmojiUrl(category.hexcode)}" alt="${category.name}" class="w-full h-full object-contain p-1" />`;
+			emojiPreview.classList.remove('hidden');
 		} else {
-			emojiPreview.innerHTML = '📝';
+			emojiPreview.innerHTML = '';
+			emojiPreview.classList.add('hidden');
 		}
 		inputEn.focus();
 	};
-	// Update colour swatch in real time
-	const colorSwatch = document.getElementById('color-swatch');
-	colorInput.addEventListener('input', () => {
-		if (colorSwatch) colorSwatch.style.backgroundColor = colorInput.value;
-	});
 	// Open category modal for adding
 	btnAddCategory.addEventListener('click', () => {
 		window.openAddCategoryModal();
@@ -740,10 +726,12 @@ function setupCategoryModal() {
 				if (window._mobileEmojiTarget) {
 					window._mobileEmojiTarget.hexcodeInput.value = hexcode;
 					window._mobileEmojiTarget.preview.innerHTML = imgHtml;
+					window._mobileEmojiTarget.preview.classList.remove('hidden');
 					window._mobileEmojiTarget = null;
 				} else {
 					hexcodeInput.value = hexcode;
 					emojiPreview.innerHTML = imgHtml;
+					emojiPreview.classList.remove('hidden');
 				}
 				emojiSearchModal.close();
 			});
@@ -755,12 +743,10 @@ function setupCategoryModal() {
 		const name = inputEn.value.trim();
 		const spanish = inputEs.value.trim();
 		const hexcode = hexcodeInput.value.trim();
-		const color = colorInput.value.trim();
 		if (!name || !spanish) return;
 		if (editingCategory) {
-			// Update existing category
+			// Update existing category — keep its existing color
 			const oldName = editingCategory.oldName;
-			// Update category in database
 			await db.categories
 				.where('name')
 				.equals(oldName)
@@ -768,7 +754,7 @@ function setupCategoryModal() {
 					name,
 					spanish,
 					hexcode: hexcode || '',
-					color: color || '#3b82f6',
+					color: editingCategory.color || randomCategoryColor(),
 				});
 			// If name changed, update all cards that reference this category
 			if (name !== oldName) {
@@ -801,7 +787,7 @@ function setupCategoryModal() {
 					name,
 					spanish,
 					hexcode: hexcode || '',
-					color: color || '#3b82f6',
+					color: randomCategoryColor(),
 				});
 				await updateCategoryList();
 				await updateCategoryFilter();
@@ -903,23 +889,6 @@ btnDeleteAudio.addEventListener('click', deleteAudio);
 categoryFilter.addEventListener('change', () => {
 	renderCards(categoryFilter.value);
 });
-const sortOrderSelect = document.getElementById('sort-order');
-if (sortOrderSelect) {
-	sortOrderSelect.addEventListener('change', () => {
-		currentSort = sortOrderSelect.value;
-		const mobile = document.getElementById('sort-order-mobile');
-		if (mobile) mobile.value = currentSort;
-		renderCards(categoryFilter.value);
-	});
-}
-const sortOrderMobile = document.getElementById('sort-order-mobile');
-if (sortOrderMobile) {
-	sortOrderMobile.addEventListener('change', () => {
-		currentSort = sortOrderMobile.value;
-		if (sortOrderSelect) sortOrderSelect.value = currentSort;
-		renderCards(categoryFilter.value);
-	});
-}
 cardForm.addEventListener('submit', async e => {
 	e.preventDefault();
 	const english = inputEn.value.trim();
@@ -953,7 +922,6 @@ cardForm.addEventListener('submit', async e => {
 		spanish,
 		categories: [...currentCategories],
 		audioBlob: currentAudioBlob,
-		difficulty: currentDifficulty,
 	};
 	if (editingId) {
 		await db.cards.update(editingId, cardData);
@@ -1114,6 +1082,58 @@ async function handleFileUpload(e) {
 	const file = e.target.files[0];
 	if (!file) return;
 	try {
+		if (file.name.endsWith('.json')) {
+			await handleJsonImport(file);
+		} else {
+			await handleTxtImport(file);
+		}
+	} finally {
+		fileInput.value = '';
+	}
+}
+
+function showJsonImportDialog() {
+	return new Promise(resolve => {
+		const dialog = document.getElementById('json-import-dialog');
+		const onCancel = () => { dialog.close(); resolve(null); };
+		const onMerge = () => { dialog.close(); resolve('merge'); };
+		const onReplace = () => { dialog.close(); resolve('replace'); };
+		const onBackdrop = e => { if (e.target === dialog) onCancel(); };
+		document.getElementById('json-import-cancel').addEventListener('click', onCancel, { once: true });
+		document.getElementById('json-import-merge').addEventListener('click', onMerge, { once: true });
+		document.getElementById('json-import-replace').addEventListener('click', onReplace, { once: true });
+		dialog.addEventListener('click', onBackdrop, { once: true });
+		dialog.showModal();
+	});
+}
+
+async function handleJsonImport(file) {
+	let json;
+	try {
+		json = JSON.parse(await file.text());
+	} catch {
+		alert('Could not read the file — make sure it is a valid Spanish Cards export.');
+		return;
+	}
+	if (!json.cards || !json.categories) {
+		alert('This file does not look like a Spanish Cards export.');
+		return;
+	}
+	const mode = await showJsonImportDialog();
+	if (!mode) return;
+	try {
+		await importData(json, mode);
+		await updateCategoryFilter();
+		renderCards(categoryFilter.value);
+		alert(`Import complete! ${json.cards.length} card${json.cards.length !== 1 ? 's' : ''} and ${json.categories.length} categor${json.categories.length !== 1 ? 'ies' : 'y'} loaded.`);
+	} catch (err) {
+		console.error('JSON import failed:', err);
+		alert('Import failed. Please try again.');
+	}
+}
+
+async function handleTxtImport(file) {
+	try {
 		const text = await file.text();
 		const lines = text
 			.split('\n')
@@ -1125,36 +1145,45 @@ async function handleFileUpload(e) {
 		}
 		const confirmed = await showConfirm({
 			title: `Import ${lines.length} sentence${lines.length > 1 ? 's' : ''}?`,
-			message: 'Cards will be created with blank Spanish translations.',
+			message: 'Spanish translations will be looked up automatically. Category and audio can be added later.',
 			okLabel: 'Import',
 			okClass: 'text-purple-600 hover:bg-purple-50',
 		});
 		if (!confirmed) return;
-		// Create cards
+
+		const progressDialog = document.getElementById('import-progress-dialog');
+		const progressBar = document.getElementById('import-progress-bar');
+		const progressLabel = document.getElementById('import-progress-label');
+		progressDialog.showModal();
+
 		const timestamp = Date.now();
 		for (let i = 0; i < lines.length; i++) {
+			progressLabel.textContent = `Translating ${i + 1} of ${lines.length}`;
+			progressBar.style.width = `${Math.round(((i + 1) / lines.length) * 100)}%`;
+
+			const spanish = await translateToSpanish(lines[i]);
 			await db.cards.add({
 				english: lines[i],
-				spanish: '',
-				categories: ['imported'],
+				spanish,
+				categories: [],
 				audioBlob: null,
-				difficulty: 'beginner',
 				srs: { repetition: 0, interval: 0, ease: 2.5, lapses: 0 },
 				srsDue: timestamp,
-				createdAt: timestamp + i, // Slight offset to maintain order
+				createdAt: timestamp + i,
 			});
 		}
+
+		progressDialog.close();
 		alert(
 			`Successfully imported ${lines.length} card${lines.length > 1 ? 's' : ''}!`,
 		);
 		await updateCategoryFilter();
 		renderCards(categoryFilter.value);
 	} catch (err) {
+		const progressDialog = document.getElementById('import-progress-dialog');
+		if (progressDialog.open) progressDialog.close();
 		console.error('Error reading file:', err);
 		alert("Failed to read file. Please make sure it's a valid .txt file.");
-	} finally {
-		// Reset file input so same file can be uploaded again
-		fileInput.value = '';
 	}
 }
 function escHtml(s) {
@@ -1384,6 +1413,7 @@ if (filterAudioBtn) {
 	await updateCategoryFilter();
 	await updateCategorySelect();
 	await updateCategoryHeader();
+	await syncMobileCategoryList();
 	await renderCards(''); // Start with all cards visible, no category selected
 	// Remove loading screen and show content
 	const loadingScreen = document.getElementById('app-loading-screen');
@@ -1457,6 +1487,12 @@ if (mobileSidebarBackdrop) {
 if (btnAddMobile) {
 	btnAddMobile.addEventListener('click', () => openModal());
 }
+
+// Practice mode buttons (desktop + mobile)
+const btnPracticeMode = document.getElementById('btn-practice-mode');
+const btnPracticeModeMobile = document.getElementById('btn-practice-mode-mobile');
+btnPracticeMode?.addEventListener('click', () => openPracticeSetup());
+btnPracticeModeMobile?.addEventListener('click', () => openPracticeSetup());
 function closeCategoryMenuModal() {
 	if (!categoryMenuModal || !categoryMenuModal.open) return;
 	categoryMenuModal.classList.add('closing');
@@ -1564,23 +1600,15 @@ const mobileCategoryForm = document.getElementById('mobile-category-form');
 const mobileCategoryEn = document.getElementById('mobile-category-en');
 const mobileCategoryEs = document.getElementById('mobile-category-es');
 const mobileCategoryHexcode = document.getElementById('mobile-category-hexcode');
-const mobileCategoryColor = document.getElementById('mobile-category-color');
 const mobileEmojiPreview = document.getElementById('mobile-emoji-preview');
 const mobileEmojiSearchBtn = document.getElementById('mobile-emoji-search-btn');
 const mobileCategoryCancel = document.getElementById('mobile-category-cancel');
-const mobileColorSwatch = document.getElementById('mobile-color-swatch');
-if (mobileCategoryColor) {
-	mobileCategoryColor.addEventListener('input', () => {
-		if (mobileColorSwatch) mobileColorSwatch.style.backgroundColor = mobileCategoryColor.value;
-	});
-}
 function openMobileAddForm() {
 	if (!mobileAddFormPanel) return;
 	mobileCategoryForm.reset();
 	mobileCategoryHexcode.value = '';
-	mobileCategoryColor.value = '#3b82f6';
-	if (mobileColorSwatch) mobileColorSwatch.style.backgroundColor = '#3b82f6';
-	mobileEmojiPreview.innerHTML = '📝';
+	mobileEmojiPreview.innerHTML = '';
+	mobileEmojiPreview.classList.add('hidden');
 	mobileAddFormPanel.classList.add('open');
 	mobileCategoryEn.focus();
 }
@@ -1616,7 +1644,6 @@ if (mobileCategoryForm) {
 		const name = mobileCategoryEn.value.trim();
 		const spanish = mobileCategoryEs.value.trim();
 		const hexcode = mobileCategoryHexcode.value.trim();
-		const color = mobileCategoryColor.value.trim();
 		if (!name || !spanish) return;
 		const exists = await db.categories.where('name').equals(name).count();
 		if (!exists) {
@@ -1624,7 +1651,7 @@ if (mobileCategoryForm) {
 				name,
 				spanish,
 				hexcode: hexcode || '',
-				color: color || '#3b82f6',
+				color: randomCategoryColor(),
 			});
 			await updateCategoryList();
 			await updateCategoryFilter();
@@ -1717,8 +1744,7 @@ if (filterAudioMobile) {
 		renderCards(categoryFilter.value);
 	});
 }
-// Initialize mobile category list on load
-syncMobileCategoryList();
+// Mobile category list is initialized inside the async IIFE above
 // Debug utilities for emoji troubleshooting
 window.debugClearEmojiCache = async () => {
 	console.log('Clearing emoji cache...');
