@@ -593,7 +593,8 @@ function setupCategoryModal() {
 	const emojiSearchBtn = document.getElementById('category-emoji-search-btn');
 	const inputEn = document.getElementById('input-category-en');
 	const inputEs = document.getElementById('input-category-es');
-	const cancelBtn = document.getElementById('category-modal-cancel');
+	const closeBtn = document.getElementById('category-modal-close');
+	const deleteBtn = document.getElementById('category-modal-delete');
 	const modalTitle = modal.querySelector('h2');
 	const submitBtn = modal.querySelector('button[type="submit"]');
 	// Emoji search modal elements
@@ -609,6 +610,7 @@ function setupCategoryModal() {
 		editingCategory = null;
 		modalTitle.textContent = 'Add Category';
 		submitBtn.textContent = 'Add Category';
+		deleteBtn.classList.add('hidden');
 		modal.showModal();
 		inputEn.value = '';
 		inputEs.value = '';
@@ -627,6 +629,7 @@ function setupCategoryModal() {
 		editingCategory = { id: category.id, oldName: category.name, color: category.color };
 		modalTitle.textContent = 'Edit Category';
 		submitBtn.textContent = 'Save Changes';
+		deleteBtn.classList.remove('hidden');
 		modal.showModal();
 		inputEn.value = category.name;
 		inputEs.value = category.spanish || '';
@@ -644,9 +647,30 @@ function setupCategoryModal() {
 	btnAddCategory.addEventListener('click', () => {
 		window.openAddCategoryModal();
 	});
-	// Cancel/close
-	cancelBtn.addEventListener('click', () => {
+	// Close via X button
+	closeBtn.addEventListener('click', () => {
 		modal.close();
+	});
+	// Delete category from edit modal
+	deleteBtn.addEventListener('click', async () => {
+		if (!editingCategory) return;
+		const name = editingCategory.oldName;
+		modal.close();
+		if (await showConfirm({ title: `Delete "${name}"?`, message: 'This will remove it from all cards.' })) {
+			await db.categories.where('name').equals(name).delete();
+			const cards = await db.cards.where('categories').equals(name).toArray();
+			for (const card of cards) {
+				card.categories = card.categories.filter(c => c !== name);
+				await db.cards.put(card);
+			}
+			selectedCategory = '';
+			await syncMobileCategoryList();
+			await updateCategoryList();
+			await updateCategoryFilter();
+			await updateCategorySelect();
+			await updateCategoryHeader();
+			renderCards(categoryFilter.value);
+		}
 	});
 	modal.addEventListener('click', e => {
 		if (e.target === modal) {
@@ -1526,8 +1550,8 @@ async function syncMobileCategoryList() {
 		.map(cat => {
 			const hexcode = cat.hexcode || '';
 			const emojiDisplay = hexcode
-				? `<img src="${getEmojiUrl(hexcode)}" alt="${cat.name}" class="w-12 h-12 object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" /><span class="text-4xl shrink-0 hidden">📝</span>`
-				: '<span class="text-4xl shrink-0">📝</span>';
+				? `<img src="${getEmojiUrl(hexcode)}" alt="${cat.name}" class="w-10 h-10 object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" /><span class="text-3xl shrink-0 hidden">📝</span>`
+				: '<span class="text-3xl shrink-0">📝</span>';
 			const spanishName = cat.spanish || '';
 			const isSelected = selectedCategory === cat.name;
 			const color = cat.color || '#3b82f6';
@@ -1536,7 +1560,7 @@ async function syncMobileCategoryList() {
 			<div class="absolute inset-0 transition-opacity ${isSelected ? 'opacity-90' : 'opacity-0 group-hover:opacity-75'}" style="background: linear-gradient(to bottom right, ${color}, ${color}dd);"></div>
 			<div class="relative px-4 py-3.5 flex items-center justify-between border-2 rounded-xl transition-all border-transparent min-h-[72px] ${isSelected ? '' : 'bg-white hover:border-gray-200'}">
 				<div class="flex items-center gap-3 flex-1 min-w-0">
-					<div class="shrink-0 w-12 h-12">${emojiDisplay}</div>
+					<div class="shrink-0 w-10 h-10">${emojiDisplay}</div>
 					<div class="text-left min-w-0 flex-1">
 						${spanishName ? `<div class="font-semibold text-gray-900 text-sm truncate">${escHtml(spanishName)}</div>` : `<div class="font-semibold text-gray-900 text-sm truncate">${escHtml(cat.name)}</div>`}
 						${spanishName ? `<div class="text-xs text-gray-600 truncate">${escHtml(cat.name)}</div>` : ''}
@@ -1546,11 +1570,6 @@ async function syncMobileCategoryList() {
 					<button type="button" class="btn-edit-category p-2 hover:bg-gray-100 rounded-lg transition-colors">
 						<svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-						</svg>
-					</button>
-					<button type="button" class="btn-delete-category p-2 hover:bg-red-50 rounded-lg transition-colors">
-						<svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
 						</svg>
 					</button>
 				</div>
@@ -1567,27 +1586,6 @@ async function syncMobileCategoryList() {
 				e.stopPropagation();
 				closeMobileSidebar();
 				await window.openEditCategoryModal(name);
-				return;
-			}
-			if (e.target.closest('.btn-delete-category')) {
-				e.stopPropagation();
-				if (
-					await showConfirm({ title: `Delete "${name}"?`, message: 'This will remove it from all cards.' })
-				) {
-					await db.categories.where('name').equals(name).delete();
-					const cards = await db.cards.where('categories').equals(name).toArray();
-					for (const card of cards) {
-						card.categories = card.categories.filter(c => c !== name);
-						await db.cards.put(card);
-					}
-					selectedCategory = '';
-					await syncMobileCategoryList();
-					await updateCategoryList();
-					await updateCategoryFilter();
-					await updateCategorySelect();
-					await updateCategoryHeader();
-					renderCards(categoryFilter.value);
-				}
 				return;
 			}
 			selectedCategory = name;

@@ -203,9 +203,9 @@ function buildPracticeView() {
 	practiceView = document.createElement('div');
 	practiceView.id = 'practice-view';
 	practiceView.className =
-		'hidden fixed inset-0 z-[60] bg-app-bg flex flex-col';
+		'hidden fixed inset-0 z-[60] bg-violet-400 flex flex-col';
 	practiceView.innerHTML = `
-		<div class="flex items-center justify-between px-5 py-4 border-b border-gray-200/70 bg-white/80 backdrop-blur-sm">
+		<div class="flex items-center justify-between px-5 py-4 border-b border-gray-200/70 bg-white">
 			<span data-el="progress" class="text-sm font-semibold text-app-text-muted"></span>
 			<button type="button" data-action="close" class="p-2 -mr-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500" aria-label="Close practice">
 				<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -214,7 +214,7 @@ function buildPracticeView() {
 
 		<div data-el="stage" class="flex-1 flex items-center justify-center p-4 sm:p-8 overflow-hidden"></div>
 
-		<div data-el="controls" class="flex items-center justify-center gap-6 px-5 py-5 border-t border-gray-200/70 bg-white/80 backdrop-blur-sm">
+		<div data-el="controls" class="flex items-center justify-center gap-6 px-5 py-5 border-t border-gray-200/70 bg-white">
 			<button type="button" data-action="prev" class="p-3 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed" aria-label="Previous card">
 				<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
 			</button>

@@ -1,7 +1,14 @@
 <!-- Modal for adding a new category -->
 <dialog id="category-modal" class="border-0 rounded-app p-8 w-[min(560px,92vw)] shadow-[0_8px_32px_rgba(0,0,0,.18)] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 m-0 backdrop:bg-black/40">
   <form id="category-modal-form" method="dialog">
-    <h2 class="mb-5 text-xl font-semibold">Add Category</h2>
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="text-xl font-semibold">Add Category</h2>
+      <button type="button" id="category-modal-close" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
     
     <div class="flex items-center gap-3 mb-4">
       <div id="selected-emoji-preview" class="w-12 h-12 flex items-center justify-center text-2xl overflow-hidden hidden"></div>
@@ -21,9 +28,9 @@
       <input type="text" id="input-category-es" name="spanish" class="px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" required>
     </label>
     
-    <div class="flex justify-end gap-3 mt-6">
-      <button type="button" id="category-modal-cancel" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-xl transition-all shadow-sm">Cancel</button>
-      <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-violet-500 to-sky-500 hover:from-violet-600 hover:to-sky-600 rounded-xl transition-all shadow-md hover:shadow-lg">Add Category</button>
+    <div class="flex items-center justify-between gap-3 mt-6">
+      <button type="button" id="category-modal-delete" class="hidden px-5 py-3 text-sm font-semibold text-red-600 bg-white hover:bg-red-50 border border-red-200 rounded-xl transition-all shadow-sm">Delete</button>
+      <button type="submit" class="px-5 py-3 text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 rounded-xl transition-all shadow-md hover:shadow-lg ml-auto">Add Category</button>
     </div>
   </form>
 </dialog>
