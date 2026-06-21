@@ -522,6 +522,8 @@ btnExport.addEventListener('click', async () => {
 	dialog.showModal();
 });
 btnImport.addEventListener('click', () => fileInput.click());
+document.getElementById('btn-export-mobile')?.addEventListener('click', () => btnExport.click());
+document.getElementById('btn-import-mobile')?.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', handleFileUpload);
 btnCancel.addEventListener('click', closeModal);
 // Close modal only when clicking on the backdrop (not on form content)
