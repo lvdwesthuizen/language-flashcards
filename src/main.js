@@ -1123,7 +1123,9 @@ async function handleJsonImport(file) {
 	if (!mode) return;
 	try {
 		await importData(json, mode);
+		await updateCategoryList();
 		await updateCategoryFilter();
+		await syncMobileCategoryList();
 		renderCards(categoryFilter.value);
 		alert(`Import complete! ${json.cards.length} card${json.cards.length !== 1 ? 's' : ''} and ${json.categories.length} categor${json.categories.length !== 1 ? 'ies' : 'y'} loaded.`);
 	} catch (err) {
