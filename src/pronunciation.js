@@ -78,21 +78,39 @@ export function recognizeSpeech() {
 		recognition.continuous = false;
 
 		let settled = false;
-		recognition.onresult = event => {
+
+		// Mobile browsers (especially iOS Safari) sometimes never fire onend.
+		// After 10 seconds, force-stop so the UI doesn't freeze indefinitely.
+		const timeout = setTimeout(() => {
+			if (!settled) {
+				try { recognition.stop(); } catch (_) { /* ignore */ }
+			}
+		}, 10000);
+
+		const settle = fn => (...args) => {
+			if (settled) return;
 			settled = true;
+			clearTimeout(timeout);
+			fn(...args);
+		};
+
+		recognition.onresult = settle(event => {
 			const result = event.results[0];
 			const alternatives = [];
 			for (let i = 0; i < result.length; i++) {
 				alternatives.push(result[i].transcript);
 			}
 			resolve(alternatives);
-		};
-		recognition.onerror = event => {
-			settled = true;
+		});
+		recognition.onerror = settle(event => {
 			reject(event.error || 'unknown');
-		};
+		});
 		recognition.onend = () => {
-			if (!settled) reject('no-speech');
+			clearTimeout(timeout);
+			if (!settled) {
+				settled = true;
+				reject('no-speech');
+			}
 		};
 
 		// expose so the caller can stop it manually

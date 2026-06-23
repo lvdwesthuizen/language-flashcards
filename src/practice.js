@@ -59,6 +59,7 @@ function matchingCards() {
 
 // --- SVG snippets ----------------------------------------------------------
 const micSvg = `<svg class="w-9 h-9" fill="currentColor" viewBox="0 0 24 24"><path d="M12 14a3 3 0 003-3V6a3 3 0 00-6 0v5a3 3 0 003 3z"/><path d="M19 11a1 1 0 10-2 0 5 5 0 01-10 0 1 1 0 10-2 0 7 7 0 006 6.93V21a1 1 0 102 0v-3.07A7 7 0 0019 11z"/></svg>`;
+const stopSvg = `<svg class="w-9 h-9" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`;
 const speakerSvg = `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414z"/></svg>`;
 const flipSvg = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>`;
 
@@ -141,13 +142,6 @@ function refreshHint() {
 }
 
 export async function openPracticeSetup() {
-	if (!isSpeechRecognitionSupported()) {
-		alert(
-			'Speech recognition is not supported in this browser. Please use Chrome, Edge or Safari.',
-		);
-		return;
-	}
-
 	if (!setupModal) setupModal = buildSetupModal();
 
 	// Load the eligible pool (cards with audio + a Spanish answer) and categories.
@@ -214,9 +208,12 @@ function buildPracticeView() {
 
 		<div data-el="stage" class="flex-1 flex items-center justify-center p-4 sm:p-8 overflow-hidden"></div>
 
-		<div data-el="controls" class="flex items-center justify-center gap-6 px-5 py-5 border-t border-gray-200/70 bg-white">
+		<div data-el="controls" class="flex items-center justify-center gap-4 px-5 py-5 border-t border-gray-200/70 bg-white">
 			<button type="button" data-action="prev" class="p-3 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed" aria-label="Previous card">
 				<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+			</button>
+			<button type="button" data-action="flip" class="p-3 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors" aria-label="Flip card">
+				<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
 			</button>
 			<button type="button" data-action="next" class="p-3 rounded-full bg-violet-600 text-white hover:bg-violet-700 shadow-md transition-colors" aria-label="Next card">
 				<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
@@ -245,6 +242,11 @@ function onPracticeClick(e) {
 			break;
 		case 'mic':
 			startAttempt();
+			break;
+		case 'stop-mic':
+			if (recognizeSpeech._active) {
+				try { recognizeSpeech._active.stop(); } catch (_) { /* ignore */ }
+			}
 			break;
 		case 'listen':
 			playReference();
@@ -283,8 +285,11 @@ function renderCurrent() {
 					<div class="flex-1 flex flex-col items-center justify-center text-center gap-6 min-h-0 overflow-auto">
 						<p class="text-xs font-medium uppercase tracking-wide text-app-text-muted">Say this in Spanish</p>
 						<p class="text-2xl font-semibold text-gray-900">${escHtml(card.english)}</p>
-						<button type="button" data-action="mic" class="w-20 h-20 rounded-full bg-app-primary text-white flex items-center justify-center shadow-lg hover:shadow-xl transition-all cursor-pointer border-0 disabled:opacity-50" aria-label="Start recording">${micSvg}</button>
-						<p data-el="status" class="text-sm text-app-text-muted italic min-h-[1.25rem]">Tap the microphone and say it in Spanish.</p>
+						${isSpeechRecognitionSupported()
+							? `<button type="button" data-action="mic" class="w-20 h-20 rounded-full bg-app-primary text-white flex items-center justify-center shadow-lg hover:shadow-xl transition-all cursor-pointer border-0 disabled:opacity-50" aria-label="Start recording">${micSvg}</button>
+						<p data-el="status" class="text-sm text-app-text-muted italic min-h-[1.25rem]">Tap the microphone and say it in Spanish.</p>`
+							: `<p class="text-sm text-app-text-muted italic text-center">Flip the card to check your answer.</p>`
+						}
 						<div data-el="result" class="hidden w-full space-y-2 text-left"></div>
 					</div>
 				</div>
@@ -345,9 +350,12 @@ async function startAttempt() {
 	const micBtn = stageEl.querySelector('[data-action="mic"]');
 	result.classList.add('hidden');
 	result.innerHTML = '';
-	status.textContent = '🎤 Listening… speak now';
+	status.textContent = '🎤 Listening… tap to stop';
 	status.className = 'text-sm text-red-600 font-semibold italic min-h-[1.25rem]';
-	micBtn.disabled = true;
+
+	// Switch mic button to a stop button so the user can end recording manually
+	micBtn.innerHTML = stopSvg;
+	micBtn.dataset.action = 'stop-mic';
 	micBtn.classList.add('recording-active');
 
 	try {
@@ -370,7 +378,8 @@ async function startAttempt() {
 			messages[err] || `Something went wrong (${err}). Try again.`;
 		status.className = 'text-sm text-amber-600 italic min-h-[1.25rem]';
 	} finally {
-		micBtn.disabled = false;
+		micBtn.innerHTML = micSvg;
+		micBtn.dataset.action = 'mic';
 		micBtn.classList.remove('recording-active');
 		activeRecognition = null;
 	}
