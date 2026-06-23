@@ -78,40 +78,33 @@ export function recognizeSpeech() {
 		recognition.continuous = false;
 
 		let settled = false;
+		let gotResult = false;
 
-		// Mobile browsers (especially iOS Safari) sometimes never fire onend.
-		// After 10 seconds, force-stop so the UI doesn't freeze indefinitely.
-		const timeout = setTimeout(() => {
-			if (!settled) {
-				try { recognition.stop(); } catch (_) { /* ignore */ }
-			}
-		}, 10000);
-
-		const settle = fn => (...args) => {
+		const done = (fn, ...args) => {
 			if (settled) return;
 			settled = true;
 			clearTimeout(timeout);
+			try { recognition.abort(); } catch (_) { /* ignore */ }
 			fn(...args);
 		};
 
-		recognition.onresult = settle(event => {
+		// Mobile browsers (especially iOS Safari) sometimes never fire onend,
+		// even after stop()/abort(), leaving the mic locked. Force-settle here
+		// so the finally block always runs and the mic is released.
+		const timeout = setTimeout(() => done(reject, 'no-speech'), 10000);
+
+		recognition.onresult = event => {
+			gotResult = true;
 			const result = event.results[0];
 			const alternatives = [];
 			for (let i = 0; i < result.length; i++) {
 				alternatives.push(result[i].transcript);
 			}
-			resolve(alternatives);
-		});
-		recognition.onerror = settle(event => {
-			reject(event.error || 'unknown');
-		});
-		recognition.onend = () => {
-			clearTimeout(timeout);
-			if (!settled) {
-				settled = true;
-				reject('no-speech');
-			}
+			done(resolve, alternatives);
 		};
+		recognition.onerror = event => done(reject, event.error || 'unknown');
+		// onend fires after onresult on a normal run — only reject if we never got results
+		recognition.onend = () => { if (!gotResult) done(reject, 'no-speech'); };
 
 		// expose so the caller can stop it manually
 		recognizeSpeech._active = recognition;
