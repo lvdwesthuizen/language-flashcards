@@ -67,9 +67,24 @@ export function gradeAttempt(transcripts, expected) {
 	};
 }
 
+// Mobile browsers (Chrome/Firefox on Android and iOS) require an explicit
+// getUserMedia call before SpeechRecognition will actually capture audio.
+// Without this, recognition.start() succeeds but no audio reaches the engine
+// and onend fires with no result (→ no-speech error).
+async function primeAudioCapture() {
+	if (!navigator.mediaDevices?.getUserMedia) return;
+	try {
+		const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+		stream.getTracks().forEach(t => t.stop());
+	} catch (_) {
+		// Permission denied — recognition.onerror will surface this as 'not-allowed'
+	}
+}
+
 // Run a single recognition session. Resolves with an array of transcript
 // alternatives, rejects with an error code string.
-export function recognizeSpeech() {
+export async function recognizeSpeech() {
+	await primeAudioCapture();
 	return new Promise((resolve, reject) => {
 		const recognition = new SpeechRecognition();
 		recognition.lang = 'es-ES';
