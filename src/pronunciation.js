@@ -77,13 +77,22 @@ async function primeAudioCapture() {
 	stream.getTracks().forEach(t => t.stop());
 }
 
+function isMobileBrowser() {
+	return (
+		/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+		(navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform)) // iPadOS
+	);
+}
+
 // Run a single recognition session. Resolves with an array of transcript
 // alternatives, rejects with an error code string.
 export async function recognizeSpeech() {
-	try {
-		await primeAudioCapture();
-	} catch (err) {
-		throw err?.name === 'NotFoundError' ? 'audio-capture' : 'not-allowed';
+	if (isMobileBrowser()) {
+		try {
+			await primeAudioCapture();
+		} catch (err) {
+			throw err?.name === 'NotFoundError' ? 'audio-capture' : 'not-allowed';
+		}
 	}
 	return new Promise((resolve, reject) => {
 		const recognition = new SpeechRecognition();
