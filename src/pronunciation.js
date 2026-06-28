@@ -127,8 +127,12 @@ export async function recognizeSpeech() {
 			done(resolve, alternatives);
 		};
 		recognition.onerror = event => done(reject, event.error || 'unknown');
-		// onend fires after onresult on a normal run — only reject if we never got results
-		recognition.onend = () => { if (!gotResult) done(reject, 'no-speech'); };
+		// onend fires after onresult on auto-stop, but Chrome fires onend BEFORE
+		// onresult when stop() is called manually. Delay the rejection briefly so
+		// a pending onresult can still arrive and resolve the promise.
+		recognition.onend = () => {
+			if (!gotResult) setTimeout(() => done(reject, 'no-speech'), 300);
+		};
 
 		// expose so the caller can stop it manually
 		recognizeSpeech._active = recognition;
