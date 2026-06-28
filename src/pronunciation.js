@@ -73,18 +73,18 @@ export function gradeAttempt(transcripts, expected) {
 // and onend fires with no result (→ no-speech error).
 async function primeAudioCapture() {
 	if (!navigator.mediaDevices?.getUserMedia) return;
-	try {
-		const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-		stream.getTracks().forEach(t => t.stop());
-	} catch (_) {
-		// Permission denied — recognition.onerror will surface this as 'not-allowed'
-	}
+	const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+	stream.getTracks().forEach(t => t.stop());
 }
 
 // Run a single recognition session. Resolves with an array of transcript
 // alternatives, rejects with an error code string.
 export async function recognizeSpeech() {
-	await primeAudioCapture();
+	try {
+		await primeAudioCapture();
+	} catch (err) {
+		throw err?.name === 'NotFoundError' ? 'audio-capture' : 'not-allowed';
+	}
 	return new Promise((resolve, reject) => {
 		const recognition = new SpeechRecognition();
 		recognition.lang = 'es-ES';

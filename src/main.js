@@ -369,9 +369,13 @@ async function startRecording() {
 			}
 		}, 100);
 	} catch (err) {
-		alert(
-			'Could not access microphone. Please grant permission and try again.',
-		);
+		if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
+			alert(
+				'Microphone access was denied. Allow microphone access in your browser or device settings, then try again.',
+			);
+		} else {
+			alert('Could not access microphone. Please try again.');
+		}
 		console.error('Recording error:', err);
 	}
 }
